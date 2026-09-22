@@ -83,6 +83,19 @@ def test_install_dispatches_selected_stage_to_selected_shell(
     assert all(path == tmp_path / directory for _stage, path in calls)
 
 
+def test_base_shell_rejects_aved_checkout_without_gen4x16(tmp_path):
+    """The installer must stop before building against the old x8 AVED tree."""
+    source = tmp_path / "source"
+    (source / "hw" / "amd_v80_gen5x8_25.1").mkdir(parents=True)
+    config = SimpleNamespace(
+        build_dir=tmp_path / "build",
+        aved_source=source,
+    )
+
+    with pytest.raises(FileNotFoundError, match="Gen4 x16 AVED tree"):
+        project_gen._install_static_shell_base(config, tmp_path / "out")
+
+
 def test_compute_build_forwards_job_count(monkeypatch, tmp_path):
     """The compute Tcl receives --jobs after its optional action argument."""
     tcl_path = tmp_path / "create_project.tcl"

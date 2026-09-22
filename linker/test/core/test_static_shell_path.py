@@ -66,7 +66,7 @@ def test_static_shell_path_defaults_to_service(monkeypatch, capsys):
     packages, path = _run_static_shell_path(monkeypatch, capsys)
 
     assert packages == ["slashkit.resources.static_shell"]
-    assert path == "/fake/slashkit.resources.static_shell/amd_v80_gen5x8_25.1.pdi"
+    assert path == "/fake/slashkit.resources.static_shell/amd_v80_gen4x16_25.1.pdi"
 
 
 def test_static_shell_path_selects_compute_nofpt(monkeypatch, capsys):
@@ -80,5 +80,5 @@ def test_static_shell_path_selects_compute_nofpt(monkeypatch, capsys):
     assert packages == ["slashkit.resources.static_shell_compute"]
     assert path == (
         "/fake/slashkit.resources.static_shell_compute/"
-        "amd_v80_gen5x8_25.1_nofpt.pdi"
+        "amd_v80_gen4x16_25.1_nofpt.pdi"
     )

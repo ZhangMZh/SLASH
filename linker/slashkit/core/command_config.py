@@ -431,14 +431,21 @@ class InstallerConfiguration(CommandConfiguration):
             required=False,
             type=str,
             default="https://github.com/Xilinx/AVED.git",
-            help="The AVED git repository to check out. Default: https://github.com/Xilinx/AVED.git",
+            help="AVED repository fallback when no local --aved-source is available.",
+        )
+        ap.add_argument(
+            "--aved-source",
+            required=False,
+            type=Path,
+            help="Local AVED source tree containing amd_v80_gen4x16_25.1. "
+            "Defaults to this checkout's submodules/AVED when present.",
         )
         ap.add_argument(
             "--aved-ref",
             required=False,
             type=str,
             default="amd_v80_gen5x8_25.1_xbtest_20251113",
-            help="The AVED git ref to check out. Default: amd_v80_gen5x8_25.1_xbtest_20251113",
+            help="AVED git ref for repository fallback; it must contain the Gen4 x16 variant.",
         )
         ap.add_argument(
             "--out-dir",
@@ -486,6 +493,12 @@ class InstallerConfiguration(CommandConfiguration):
 
         self._aved_repo: str = args.aved_repo
         self._aved_ref: str = args.aved_ref
+        local_aved = Path(__file__).resolve().parents[3] / "submodules" / "AVED"
+        requested_aved = getattr(args, "aved_source", None)
+        self._aved_source: Optional[Path] = (
+            requested_aved.expanduser().resolve() if requested_aved is not None
+            else local_aved if local_aved.is_dir() else None
+        )
         self._shell_type: ShellType = ShellType(args.shell_type)
 
         self._out_dir: Path = args.out_dir.expanduser().resolve()
@@ -507,6 +520,10 @@ class InstallerConfiguration(CommandConfiguration):
     @property
     def aved_ref(self) -> str:
         return self._aved_ref
+
+    @property
+    def aved_source(self) -> Optional[Path]:
+        return self._aved_source
 
     @property
     def shell_type(self) -> ShellType:

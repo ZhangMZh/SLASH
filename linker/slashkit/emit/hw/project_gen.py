@@ -54,7 +54,7 @@ from slashkit.core.launcher import (
 
 logger = logging.getLogger(__name__)
 
-AVED_DESIGN_NAME = "amd_v80_gen5x8_25.1"
+AVED_DESIGN_NAME = "amd_v80_gen4x16_25.1"
 _RP1_RESOURCE_PACKAGE = "slashkit.resources.aved"
 _RP1_RESOURCE_DIRECTORY = "rp1"
 _RP1_REQUIRED_RESOURCES = (
@@ -277,6 +277,9 @@ def generate_base_pdi_with_aved(config: CommandConfiguration) -> tuple[Path, Pat
     aved_dir = config.build_dir / "AVED"
 
     aved_hw_dir = aved_dir / "hw" / AVED_DESIGN_NAME
+    if not aved_hw_dir.is_dir():
+        raise FileNotFoundError(
+            f"{aved_hw_dir} is missing; this build directory needs the Gen4 x16 AVED variant")
     aved_build_dir = aved_hw_dir / "build"
     aved_fpt_dir = aved_hw_dir / "fpt"
     aved_fw_profile_dir = aved_dir / "fw" / "AMC" / \
@@ -300,7 +303,7 @@ def generate_base_pdi_with_aved(config: CommandConfiguration) -> tuple[Path, Pat
         with resources.path("slashkit.resources.aved", file_name) as in_path:
             _copy_checked(in_path, target_dir / file_name)
 
-    # build_all.sh and the four files staged above all live in the AVED clone,
+    # build_all.sh and the four staged support files all live in the AVED copy,
     # so offloading this step needs nothing installed on the execution host
     # beyond a Vitis toolchain. It does need more of the base system than the
     # other steps (cmake, make, git, python3); see scripts/lsf/README.md.
@@ -665,23 +668,23 @@ def _install_static_shell_base(config: InstallerConfiguration, static_shell_dir:
 
     aved_dir = config.build_dir / "AVED"
     if not aved_dir.exists():
-        # Clone AVED early so that errors are caught before the multi-hour
-        # implementation run. Stays local even when the tool steps are
-        # offloaded: this needs network egress, which compute nodes typically
-        # do not have.
-        subprocess.run(
-            [
-                "git",
-                "clone",
-                "--recurse-submodules",
-                "-b",
-                config.aved_ref,
-                config.aved_repo,
+        if config.aved_source is not None:
+            shutil.copytree(
+                config.aved_source,
                 aved_dir,
-            ],
-            check=True,
-        )
+                ignore=shutil.ignore_patterns(".git", "build", "__pycache__"),
+            )
+        else:
+            subprocess.run(
+                ["git", "clone", "--recurse-submodules", "-b",
+                 config.aved_ref, config.aved_repo, aved_dir],
+                check=True,
+            )
 
+    aved_hw_dir = aved_dir / "hw" / AVED_DESIGN_NAME
+    if not aved_hw_dir.is_dir():
+        raise FileNotFoundError(
+            f"{aved_hw_dir} is missing; pass --aved-source with the Gen4 x16 AVED tree")
     if config.shell_type == ShellType.SERVICE:
         create_build_project(config)
     else:

@@ -927,7 +927,7 @@ proc create_hier_cell_aved { parentCell nameHier } {
   # Create interface pins
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 gt_pcie_refclk
 
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:gt_rtl:1.0 gt_pciea1
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:gt_rtl:1.0 gt_pciea0
 
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 smbus_0
 
@@ -972,119 +972,119 @@ proc create_hier_cell_aved { parentCell nameHier } {
   set cips [ create_bd_cell -type ip -vlnv xilinx.com:ip:versal_cips:3.4 cips ]
   set_property -dict [list \
     CONFIG.CPM_CONFIG { \
-      CPM_PCIE0_MODES {None} \
+      CPM_PCIE0_MODES {DMA} \
       CPM_PCIE0_TANDEM {None} \
-      CPM_PCIE1_ACS_CAP_ON {0} \
-      CPM_PCIE1_ARI_CAP_ENABLED {1} \
-      CPM_PCIE1_BRIDGE_AXI_SLAVE_IF {1} \
-      CPM_PCIE1_CFG_EXT_IF {1} \
-      CPM_PCIE1_CFG_VEND_ID {10ee} \
-      CPM_PCIE1_COPY_PF0_QDMA_ENABLED {0} \
-      CPM_PCIE1_EXT_PCIE_CFG_SPACE_ENABLED {Extended_Large} \
-      CPM_PCIE1_FUNCTIONAL_MODE {QDMA} \
-      CPM_PCIE1_MAX_LINK_SPEED {32.0_GT/s} \
-      CPM_PCIE1_MODES {DMA} \
-      CPM_PCIE1_MODE_SELECTION {Advanced} \
-      CPM_PCIE1_MSI_X_OPTIONS {MSI-X_Internal} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_BASEADDR_0 {0x0000008000000000} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_BASEADDR_1 {0x0000008040000000} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_BASEADDR_2 {0x0000008080000000} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_BASEADDR_3 {0x00000080C0000000} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_BASEADDR_4 {0x0000008100000000} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_BASEADDR_5 {0x0000008140000000} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_HIGHADDR_0 {0x000000803FFFFFFFF} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_HIGHADDR_1 {0x000000807FFFFFFFF} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_HIGHADDR_2 {0x00000080BFFFFFFFF} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_HIGHADDR_3 {0x00000080FFFFFFFFF} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_HIGHADDR_4 {0x000000813FFFFFFFF} \
-      CPM_PCIE1_PF0_AXIBAR2PCIE_HIGHADDR_5 {0x000000817FFFFFFFF} \
-      CPM_PCIE1_PF0_BAR0_QDMA_64BIT {1} \
-      CPM_PCIE1_PF0_BAR0_QDMA_ENABLED {1} \
-      CPM_PCIE1_PF0_BAR0_QDMA_PREFETCHABLE {1} \
-      CPM_PCIE1_PF0_BAR0_QDMA_SCALE {Megabytes} \
-      CPM_PCIE1_PF0_BAR0_QDMA_SIZE {256} \
-      CPM_PCIE1_PF0_BAR0_QDMA_TYPE {AXI_Bridge_Master} \
-      CPM_PCIE1_PF0_BAR2_QDMA_64BIT {0} \
-      CPM_PCIE1_PF0_BAR2_QDMA_ENABLED {0} \
-      CPM_PCIE1_PF0_BAR2_QDMA_PREFETCHABLE {0} \
-      CPM_PCIE1_PF0_BAR2_QDMA_SCALE {Kilobytes} \
-      CPM_PCIE1_PF0_BAR2_QDMA_SIZE {4} \
-      CPM_PCIE1_PF0_BAR2_QDMA_TYPE {AXI_Bridge_Master} \
-      CPM_PCIE1_PF0_BASE_CLASS_VALUE {12} \
-      CPM_PCIE1_PF0_CFG_DEV_ID {50b4} \
-      CPM_PCIE1_PF0_CFG_SUBSYS_ID {000e} \
-      CPM_PCIE1_PF0_DEV_CAP_FUNCTION_LEVEL_RESET_CAPABLE {0} \
-      CPM_PCIE1_PF0_MSIX_CAP_TABLE_OFFSET {40} \
-      CPM_PCIE1_PF0_MSIX_CAP_TABLE_SIZE {1} \
-      CPM_PCIE1_PF0_MSIX_ENABLED {0} \
-      CPM_PCIE1_PF0_PCIEBAR2AXIBAR_QDMA_0 {0x0000020100000000} \
-      CPM_PCIE1_PF0_SUB_CLASS_VALUE {00} \
-      CPM_PCIE1_PF1_BAR0_QDMA_64BIT {1} \
-      CPM_PCIE1_PF1_BAR0_QDMA_ENABLED {1} \
-      CPM_PCIE1_PF1_BAR0_QDMA_PREFETCHABLE {1} \
-      CPM_PCIE1_PF1_BAR0_QDMA_SCALE {Kilobytes} \
-      CPM_PCIE1_PF1_BAR0_QDMA_SIZE {512} \
-      CPM_PCIE1_PF1_BAR0_QDMA_TYPE {DMA} \
-      CPM_PCIE1_PF1_BAR2_QDMA_64BIT {0} \
-      CPM_PCIE1_PF1_BAR2_QDMA_ENABLED {0} \
-      CPM_PCIE1_PF1_BAR2_QDMA_PREFETCHABLE {0} \
-      CPM_PCIE1_PF1_BAR2_QDMA_SCALE {Kilobytes} \
-      CPM_PCIE1_PF1_BAR2_QDMA_SIZE {4} \
-      CPM_PCIE1_PF1_BAR2_QDMA_TYPE {AXI_Bridge_Master} \
-      CPM_PCIE1_PF1_BASE_CLASS_VALUE {12} \
-      CPM_PCIE1_PF1_CFG_DEV_ID {50c1} \
-      CPM_PCIE1_PF1_CFG_SUBSYS_ID {000e} \
-      CPM_PCIE1_PF1_CFG_SUBSYS_VEND_ID {10EE} \
-      CPM_PCIE1_PF1_MSIX_CAP_TABLE_OFFSET {50000} \
-      CPM_PCIE1_PF1_MSIX_CAP_TABLE_SIZE {8} \
-      CPM_PCIE1_PF1_MSIX_ENABLED {1} \
-      CPM_PCIE1_PF1_PCIEBAR2AXIBAR_QDMA_2 {0x0000020200000000} \
-      CPM_PCIE1_PF1_SUB_CLASS_VALUE {00} \
-      CPM_PCIE1_PF2_BAR0_QDMA_64BIT {1} \
-      CPM_PCIE1_PF2_BAR0_QDMA_SCALE {Megabytes} \
-      CPM_PCIE1_PF2_BAR0_QDMA_SIZE {128} \
-      CPM_PCIE1_PF2_BAR0_QDMA_TYPE {AXI_Bridge_Master} \
-      CPM_PCIE1_PF2_BAR2_QDMA_64BIT {1} \
-      CPM_PCIE1_PF2_BAR2_QDMA_ENABLED {1} \
-      CPM_PCIE1_PF2_BAR2_QDMA_SCALE {Megabytes} \
-      CPM_PCIE1_PF2_BAR2_QDMA_SIZE {128} \
-      CPM_PCIE1_PF2_BAR2_QDMA_TYPE {AXI_Bridge_Master} \
-      CPM_PCIE1_PF2_BAR3_QDMA_ENABLED {0} \
-      CPM_PCIE1_PF2_BAR3_QDMA_SIZE {4} \
-      CPM_PCIE1_PF2_BAR4_QDMA_64BIT {1} \
-      CPM_PCIE1_PF2_BAR4_QDMA_ENABLED {1} \
-      CPM_PCIE1_PF2_BAR4_QDMA_PREFETCHABLE {1} \
-      CPM_PCIE1_PF2_BAR4_QDMA_SCALE {Megabytes} \
-      CPM_PCIE1_PF2_BAR4_QDMA_SIZE {128} \
-      CPM_PCIE1_PF2_BASE_CLASS_VALUE {12} \
-      CPM_PCIE1_PF2_CFG_DEV_ID {50c2} \
-      CPM_PCIE1_PF2_CFG_SUBSYS_ID {000e} \
-      CPM_PCIE1_PF2_CFG_SUBSYS_VEND_ID {10EE} \
-      CPM_PCIE1_PF2_EXPANSION_ROM_QDMA_ENABLED {0} \
-      CPM_PCIE1_PF2_PCIEBAR2AXIBAR_QDMA_0 {0x0000020200000000} \
-      CPM_PCIE1_PF2_PCIEBAR2AXIBAR_QDMA_2 {0x0000020300000000} \
-      CPM_PCIE1_PF2_PCIEBAR2AXIBAR_QDMA_4 {0x0000020400000000} \
-      CPM_PCIE1_PF2_USE_CLASS_CODE_LOOKUP_ASSISTANT {0} \
-      CPM_PCIE1_PF3_BAR0_QDMA_64BIT {1} \
-      CPM_PCIE1_PF3_BAR0_QDMA_PREFETCHABLE {1} \
-      CPM_PCIE1_PF3_BAR0_QDMA_SCALE {Gigabytes} \
-      CPM_PCIE1_PF3_BAR0_QDMA_SIZE {32} \
-      CPM_PCIE1_PF3_BAR2_QDMA_64BIT {1} \
-      CPM_PCIE1_PF3_BAR2_QDMA_ENABLED {1} \
-      CPM_PCIE1_PF3_BAR2_QDMA_PREFETCHABLE {1} \
-      CPM_PCIE1_PF3_BAR2_QDMA_SCALE {Gigabytes} \
-      CPM_PCIE1_PF3_BAR2_QDMA_SIZE {32} \
-      CPM_PCIE1_PF3_BASE_CLASS_VALUE {12} \
-      CPM_PCIE1_PF3_CFG_DEV_ID {50c3} \
-      CPM_PCIE1_PF3_CFG_SUBSYS_ID {000e} \
-      CPM_PCIE1_PF3_CFG_SUBSYS_VEND_ID {10EE} \
-      CPM_PCIE1_PF3_PCIEBAR2AXIBAR_QDMA_0 {0x4000000000} \
-      CPM_PCIE1_PF3_PCIEBAR2AXIBAR_QDMA_2 {0x60000000000} \
-      CPM_PCIE1_PF3_SUB_CLASS_INTF_MENU {RAM} \
-      CPM_PCIE1_PF3_SUB_CLASS_VALUE {80} \
-      CPM_PCIE1_PF3_USE_CLASS_CODE_LOOKUP_ASSISTANT {0} \
-      CPM_PCIE1_PL_LINK_CAP_MAX_LINK_WIDTH {X8} \
-      CPM_PCIE1_TL_PF_ENABLE_REG {4} \
+      CPM_PCIE1_MODES {None} \
+      CPM_PCIE0_ACS_CAP_ON {0} \
+      CPM_PCIE0_ARI_CAP_ENABLED {1} \
+      CPM_PCIE0_BRIDGE_AXI_SLAVE_IF {1} \
+      CPM_PCIE0_CFG_EXT_IF {1} \
+      CPM_PCIE0_CFG_VEND_ID {10ee} \
+      CPM_PCIE0_COPY_PF0_QDMA_ENABLED {0} \
+      CPM_PCIE0_EXT_PCIE_CFG_SPACE_ENABLED {Extended_Large} \
+      CPM_PCIE0_FUNCTIONAL_MODE {QDMA} \
+      CPM_PCIE0_MAX_LINK_SPEED {16.0_GT/s} \
+      CPM_PCIE0_MODE_SELECTION {Advanced} \
+      CPM_PCIE0_MSI_X_OPTIONS {MSI-X_Internal} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_BASEADDR_0 {0x0000008000000000} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_BASEADDR_1 {0x0000008040000000} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_BASEADDR_2 {0x0000008080000000} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_BASEADDR_3 {0x00000080C0000000} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_BASEADDR_4 {0x0000008100000000} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_BASEADDR_5 {0x0000008140000000} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_HIGHADDR_0 {0x000000803FFFFFFFF} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_HIGHADDR_1 {0x000000807FFFFFFFF} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_HIGHADDR_2 {0x00000080BFFFFFFFF} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_HIGHADDR_3 {0x00000080FFFFFFFFF} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_HIGHADDR_4 {0x000000813FFFFFFFF} \
+      CPM_PCIE0_PF0_AXIBAR2PCIE_HIGHADDR_5 {0x000000817FFFFFFFF} \
+      CPM_PCIE0_PF0_BAR0_QDMA_64BIT {1} \
+      CPM_PCIE0_PF0_BAR0_QDMA_ENABLED {1} \
+      CPM_PCIE0_PF0_BAR0_QDMA_PREFETCHABLE {1} \
+      CPM_PCIE0_PF0_BAR0_QDMA_SCALE {Megabytes} \
+      CPM_PCIE0_PF0_BAR0_QDMA_SIZE {256} \
+      CPM_PCIE0_PF0_BAR0_QDMA_TYPE {AXI_Bridge_Master} \
+      CPM_PCIE0_PF0_BAR2_QDMA_64BIT {0} \
+      CPM_PCIE0_PF0_BAR2_QDMA_ENABLED {0} \
+      CPM_PCIE0_PF0_BAR2_QDMA_PREFETCHABLE {0} \
+      CPM_PCIE0_PF0_BAR2_QDMA_SCALE {Kilobytes} \
+      CPM_PCIE0_PF0_BAR2_QDMA_SIZE {4} \
+      CPM_PCIE0_PF0_BAR2_QDMA_TYPE {AXI_Bridge_Master} \
+      CPM_PCIE0_PF0_BASE_CLASS_VALUE {12} \
+      CPM_PCIE0_PF0_CFG_DEV_ID {50b4} \
+      CPM_PCIE0_PF0_CFG_SUBSYS_ID {000e} \
+      CPM_PCIE0_PF0_DEV_CAP_FUNCTION_LEVEL_RESET_CAPABLE {0} \
+      CPM_PCIE0_PF0_MSIX_CAP_TABLE_OFFSET {40} \
+      CPM_PCIE0_PF0_MSIX_CAP_TABLE_SIZE {1} \
+      CPM_PCIE0_PF0_MSIX_ENABLED {0} \
+      CPM_PCIE0_PF0_PCIEBAR2AXIBAR_QDMA_0 {0x0000020100000000} \
+      CPM_PCIE0_PF0_SUB_CLASS_VALUE {00} \
+      CPM_PCIE0_PF1_BAR0_QDMA_64BIT {1} \
+      CPM_PCIE0_PF1_BAR0_QDMA_ENABLED {1} \
+      CPM_PCIE0_PF1_BAR0_QDMA_PREFETCHABLE {1} \
+      CPM_PCIE0_PF1_BAR0_QDMA_SCALE {Kilobytes} \
+      CPM_PCIE0_PF1_BAR0_QDMA_SIZE {512} \
+      CPM_PCIE0_PF1_BAR0_QDMA_TYPE {DMA} \
+      CPM_PCIE0_PF1_BAR2_QDMA_64BIT {0} \
+      CPM_PCIE0_PF1_BAR2_QDMA_ENABLED {0} \
+      CPM_PCIE0_PF1_BAR2_QDMA_PREFETCHABLE {0} \
+      CPM_PCIE0_PF1_BAR2_QDMA_SCALE {Kilobytes} \
+      CPM_PCIE0_PF1_BAR2_QDMA_SIZE {4} \
+      CPM_PCIE0_PF1_BAR2_QDMA_TYPE {AXI_Bridge_Master} \
+      CPM_PCIE0_PF1_BASE_CLASS_VALUE {12} \
+      CPM_PCIE0_PF1_CFG_DEV_ID {50c1} \
+      CPM_PCIE0_PF1_CFG_SUBSYS_ID {000e} \
+      CPM_PCIE0_PF1_CFG_SUBSYS_VEND_ID {10EE} \
+      CPM_PCIE0_PF1_MSIX_CAP_TABLE_OFFSET {50000} \
+      CPM_PCIE0_PF1_MSIX_CAP_TABLE_SIZE {8} \
+      CPM_PCIE0_PF1_MSIX_ENABLED {1} \
+      CPM_PCIE0_PF1_PCIEBAR2AXIBAR_QDMA_2 {0x0000020200000000} \
+      CPM_PCIE0_PF1_SUB_CLASS_VALUE {00} \
+      CPM_PCIE0_PF2_BAR0_QDMA_64BIT {1} \
+      CPM_PCIE0_PF2_BAR0_QDMA_SCALE {Megabytes} \
+      CPM_PCIE0_PF2_BAR0_QDMA_SIZE {128} \
+      CPM_PCIE0_PF2_BAR0_QDMA_TYPE {AXI_Bridge_Master} \
+      CPM_PCIE0_PF2_BAR2_QDMA_64BIT {1} \
+      CPM_PCIE0_PF2_BAR2_QDMA_ENABLED {1} \
+      CPM_PCIE0_PF2_BAR2_QDMA_SCALE {Megabytes} \
+      CPM_PCIE0_PF2_BAR2_QDMA_SIZE {128} \
+      CPM_PCIE0_PF2_BAR2_QDMA_TYPE {AXI_Bridge_Master} \
+      CPM_PCIE0_PF2_BAR3_QDMA_ENABLED {0} \
+      CPM_PCIE0_PF2_BAR3_QDMA_SIZE {4} \
+      CPM_PCIE0_PF2_BAR4_QDMA_64BIT {1} \
+      CPM_PCIE0_PF2_BAR4_QDMA_ENABLED {1} \
+      CPM_PCIE0_PF2_BAR4_QDMA_PREFETCHABLE {1} \
+      CPM_PCIE0_PF2_BAR4_QDMA_SCALE {Megabytes} \
+      CPM_PCIE0_PF2_BAR4_QDMA_SIZE {128} \
+      CPM_PCIE0_PF2_BASE_CLASS_VALUE {12} \
+      CPM_PCIE0_PF2_CFG_DEV_ID {50c2} \
+      CPM_PCIE0_PF2_CFG_SUBSYS_ID {000e} \
+      CPM_PCIE0_PF2_CFG_SUBSYS_VEND_ID {10EE} \
+      CPM_PCIE0_PF2_EXPANSION_ROM_QDMA_ENABLED {0} \
+      CPM_PCIE0_PF2_PCIEBAR2AXIBAR_QDMA_0 {0x0000020200000000} \
+      CPM_PCIE0_PF2_PCIEBAR2AXIBAR_QDMA_2 {0x0000020300000000} \
+      CPM_PCIE0_PF2_PCIEBAR2AXIBAR_QDMA_4 {0x0000020400000000} \
+      CPM_PCIE0_PF2_USE_CLASS_CODE_LOOKUP_ASSISTANT {0} \
+      CPM_PCIE0_PF3_BAR0_QDMA_64BIT {1} \
+      CPM_PCIE0_PF3_BAR0_QDMA_PREFETCHABLE {1} \
+      CPM_PCIE0_PF3_BAR0_QDMA_SCALE {Gigabytes} \
+      CPM_PCIE0_PF3_BAR0_QDMA_SIZE {32} \
+      CPM_PCIE0_PF3_BAR2_QDMA_64BIT {1} \
+      CPM_PCIE0_PF3_BAR2_QDMA_ENABLED {1} \
+      CPM_PCIE0_PF3_BAR2_QDMA_PREFETCHABLE {1} \
+      CPM_PCIE0_PF3_BAR2_QDMA_SCALE {Gigabytes} \
+      CPM_PCIE0_PF3_BAR2_QDMA_SIZE {32} \
+      CPM_PCIE0_PF3_BASE_CLASS_VALUE {12} \
+      CPM_PCIE0_PF3_CFG_DEV_ID {50c3} \
+      CPM_PCIE0_PF3_CFG_SUBSYS_ID {000e} \
+      CPM_PCIE0_PF3_CFG_SUBSYS_VEND_ID {10EE} \
+      CPM_PCIE0_PF3_PCIEBAR2AXIBAR_QDMA_0 {0x4000000000} \
+      CPM_PCIE0_PF3_PCIEBAR2AXIBAR_QDMA_2 {0x60000000000} \
+      CPM_PCIE0_PF3_SUB_CLASS_INTF_MENU {RAM} \
+      CPM_PCIE0_PF3_SUB_CLASS_VALUE {80} \
+      CPM_PCIE0_PF3_USE_CLASS_CODE_LOOKUP_ASSISTANT {0} \
+      CPM_PCIE0_PL_LINK_CAP_MAX_LINK_WIDTH {X16} \
+      CPM_PCIE0_TL_PF_ENABLE_REG {4} \
     } \
     CONFIG.PS_PMC_CONFIG { \
       BOOT_MODE {Custom} \
@@ -1238,8 +1238,8 @@ proc create_hier_cell_aved { parentCell nameHier } {
 
 
   # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins cips/gt_refclk1] [get_bd_intf_pins gt_pcie_refclk]
-  connect_bd_intf_net -intf_net Conn2 [get_bd_intf_pins cips/PCIE1_GT] [get_bd_intf_pins gt_pciea1]
+  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins cips/gt_refclk0] [get_bd_intf_pins gt_pcie_refclk]
+  connect_bd_intf_net -intf_net Conn2 [get_bd_intf_pins cips/PCIE0_GT] [get_bd_intf_pins gt_pciea0]
   connect_bd_intf_net -intf_net Conn3 [get_bd_intf_pins base_logic/smbus_rpu] [get_bd_intf_pins smbus_0]
   connect_bd_intf_net -intf_net Conn4 [get_bd_intf_pins cips/CPM_PCIE_NOC_0] [get_bd_intf_pins CPM_PCIE_NOC_0]
   connect_bd_intf_net -intf_net Conn5 [get_bd_intf_pins cips/CPM_PCIE_NOC_1] [get_bd_intf_pins CPM_PCIE_NOC_1]
@@ -1251,7 +1251,7 @@ proc create_hier_cell_aved { parentCell nameHier } {
   connect_bd_intf_net -intf_net base_logic_M00_INI [get_bd_intf_pins M00_INI] [get_bd_intf_pins base_logic/M00_INI]
   connect_bd_intf_net -intf_net base_logic_m_axi_pcie_mgmt_pdi_reset [get_bd_intf_pins base_logic/m_axi_pcie_mgmt_pdi_reset] [get_bd_intf_pins clock_reset/s_axi_pcie_mgmt_pdi_reset]
   connect_bd_intf_net -intf_net cips_M_AXI_LPD [get_bd_intf_pins cips/M_AXI_LPD] [get_bd_intf_pins base_logic/s_axi_rpu]
-  connect_bd_intf_net -intf_net cips_pcie1_cfg_ext [get_bd_intf_pins cips/pcie1_cfg_ext] [get_bd_intf_pins base_logic/pcie_cfg_ext]
+  connect_bd_intf_net -intf_net cips_pcie0_cfg_ext [get_bd_intf_pins cips/pcie0_cfg_ext] [get_bd_intf_pins base_logic/pcie_cfg_ext]
 
   # Create port connections
   connect_bd_net -net base_logic_irq_axi_smbus_rpu  [get_bd_pins base_logic/irq_axi_smbus_rpu] \
@@ -1262,7 +1262,7 @@ proc create_hier_cell_aved { parentCell nameHier } {
   [get_bd_pins cpm_pcie_noc_axi0_clk]
   connect_bd_net -net cips_cpm_pcie_noc_axi1_clk  [get_bd_pins cips/cpm_pcie_noc_axi1_clk] \
   [get_bd_pins cpm_pcie_noc_axi1_clk]
-  connect_bd_net -net cips_dma1_axi_aresetn  [get_bd_pins cips/dma1_axi_aresetn] \
+  connect_bd_net -net cips_dma0_axi_aresetn  [get_bd_pins cips/dma0_axi_aresetn] \
   [get_bd_pins clock_reset/dma_axi_aresetn]
   connect_bd_net -net cips_eos  [get_bd_pins cips/eos] \
   [get_bd_pins eos]
@@ -1283,7 +1283,7 @@ proc create_hier_cell_aved { parentCell nameHier } {
   connect_bd_net -net cips_pl1_ref_clk  [get_bd_pins cips/pl1_ref_clk] \
   [get_bd_pins clock_reset/clk_freerun]
   connect_bd_net -net cips_pl2_ref_clk  [get_bd_pins cips/pl2_ref_clk] \
-  [get_bd_pins cips/dma1_intrfc_clk] \
+  [get_bd_pins cips/dma0_intrfc_clk] \
   [get_bd_pins base_logic/clk_pcie] \
   [get_bd_pins clock_reset/clk_pcie]
   connect_bd_net -net cips_pl3_ref_clk  [get_bd_pins cips/pl3_ref_clk] \
@@ -1293,7 +1293,7 @@ proc create_hier_cell_aved { parentCell nameHier } {
   connect_bd_net -net cips_pmc_axi_noc_axi0_clk  [get_bd_pins cips/pmc_axi_noc_axi0_clk] \
   [get_bd_pins pmc_axi_noc_axi0_clk]
   connect_bd_net -net clock_reset_resetn_pcie_ic  [get_bd_pins clock_reset/resetn_pcie_ic] \
-  [get_bd_pins cips/dma1_intrfc_resetn]
+  [get_bd_pins cips/dma0_intrfc_resetn]
   connect_bd_net -net clock_reset_resetn_pcie_periph  [get_bd_pins clock_reset/resetn_pcie_periph] \
   [get_bd_pins base_logic/resetn_pcie_periph]
   connect_bd_net -net clock_reset_resetn_pl_ic  [get_bd_pins clock_reset/resetn_pl_ic] \
@@ -2456,7 +2456,7 @@ proc create_hier_cell_static_region { parentCell nameHier } {
 
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 smbus_0
 
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:gt_rtl:1.0 gt_pciea1
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:gt_rtl:1.0 gt_pciea0
 
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:inimm_rtl:1.0 S00_INI
 
@@ -3192,7 +3192,7 @@ PRESENT 0} RID {WIDTH 0 PRESENT 0} RDATA {WIDTH 256 PRESENT 1} RRESP {WIDTH 2 PR
   connect_bd_intf_net -intf_net Conn71 [get_bd_intf_pins noc/hbm_ref_clk_1] [get_bd_intf_pins hbm_ref_clk_1]
   connect_bd_intf_net -intf_net Conn72 [get_bd_intf_pins aved/gt_pcie_refclk] [get_bd_intf_pins gt_pcie_refclk]
   connect_bd_intf_net -intf_net Conn73 [get_bd_intf_pins aved/smbus_0] [get_bd_intf_pins smbus_0]
-  connect_bd_intf_net -intf_net Conn74 [get_bd_intf_pins aved/gt_pciea1] [get_bd_intf_pins gt_pciea1]
+  connect_bd_intf_net -intf_net Conn74 [get_bd_intf_pins aved/gt_pciea0] [get_bd_intf_pins gt_pciea0]
   connect_bd_intf_net -intf_net Conn75 [get_bd_intf_pins noc/S00_INI] [get_bd_intf_pins S00_INI]
   connect_bd_intf_net -intf_net Conn76 [get_bd_intf_pins noc/S01_INI] [get_bd_intf_pins S01_INI]
   connect_bd_intf_net -intf_net Conn77 [get_bd_intf_pins noc/S02_INI] [get_bd_intf_pins S02_INI]
@@ -3531,7 +3531,7 @@ proc create_root_design { parentCell } {
    CONFIG.FREQ_HZ {100000000} \
    ] $gt_pcie_refclk
 
-  set gt_pciea1 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:gt_rtl:1.0 gt_pciea1 ]
+  set gt_pciea0 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:gt_rtl:1.0 gt_pciea0 ]
 
   set smbus_0 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 smbus_0 ]
 
@@ -3643,7 +3643,7 @@ proc create_root_design { parentCell } {
 
   # Create interface connections
   connect_bd_intf_net -intf_net S_AXILITE_INI_2 [get_bd_intf_pins slash/S_AXILITE_INI] [get_bd_intf_pins static_region/M04_INI]
-  connect_bd_intf_net -intf_net gt_pcie_refclk_1 [get_bd_intf_ports gt_pcie_refclk] [get_bd_intf_pins static_region/gt_pcie_refclk]
+  connect_bd_intf_net -intf_net gt_pcie_refclk_0 [get_bd_intf_ports gt_pcie_refclk] [get_bd_intf_pins static_region/gt_pcie_refclk]
   connect_bd_intf_net -intf_net hbm_ref_clk_0_1 [get_bd_intf_ports hbm_ref_clk_0] [get_bd_intf_pins static_region/hbm_ref_clk_0]
   connect_bd_intf_net -intf_net hbm_ref_clk_1_1 [get_bd_intf_ports hbm_ref_clk_1] [get_bd_intf_pins static_region/hbm_ref_clk_1]
   connect_bd_intf_net -intf_net slash_HBM_VNOC_INI_00 [get_bd_intf_pins slash/HBM_VNOC_INI_00] [get_bd_intf_pins static_region/S04_INI]
@@ -3733,7 +3733,7 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net slash_QDMA_SLAVE_BRIDGE_0 [get_bd_intf_pins slash/QDMA_SLAVE_BRIDGE_0] [get_bd_intf_pins static_region/S00_INI6]
   connect_bd_intf_net -intf_net static_region_CH0_DDR4_0_0 [get_bd_intf_ports CH0_DDR4_0_0] [get_bd_intf_pins static_region/CH0_DDR4_0_0]
   connect_bd_intf_net -intf_net static_region_CH0_DDR4_0_1 [get_bd_intf_ports CH0_DDR4_0_1] [get_bd_intf_pins static_region/CH0_DDR4_0_1]
-  connect_bd_intf_net -intf_net static_region_gt_pciea1 [get_bd_intf_ports gt_pciea1] [get_bd_intf_pins static_region/gt_pciea1]
+  connect_bd_intf_net -intf_net static_region_gt_pciea0 [get_bd_intf_ports gt_pciea0] [get_bd_intf_pins static_region/gt_pciea0]
   connect_bd_intf_net -intf_net static_region_smbus_0 [get_bd_intf_ports smbus_0] [get_bd_intf_pins static_region/smbus_0]
   connect_bd_intf_net -intf_net sys_clk0_0_1 [get_bd_intf_ports sys_clk0_0] [get_bd_intf_pins static_region/sys_clk0_0]
   connect_bd_intf_net -intf_net sys_clk0_1_1 [get_bd_intf_ports sys_clk0_1] [get_bd_intf_pins static_region/sys_clk0_1]
@@ -4710,5 +4710,3 @@ proc create_root_design { parentCell } {
 ##################################################################
 
 create_root_design ""
-
-

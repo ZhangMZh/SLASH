@@ -22,7 +22,7 @@
 set -Eeuo pipefail
 
 # Init
-DESIGN="amd_v80_gen5x8_25.1"
+DESIGN="amd_v80_gen4x16_25.1"
 HW_DIR=$(realpath ./)
 FW_DIR=$(realpath ./../../fw/AMC)
 XSA=${XSA:-$(realpath ${HW_DIR})/build/${DESIGN}.xsa}
@@ -67,4 +67,3 @@ popd
 
 # final pdi generation
 ${HW_DIR}/fpt/fpt_pdi_gen.py --fpt ${HW_DIR}/build/fpt.bin --pdi ${HW_DIR}/build/${DESIGN}_nofpt.pdi --output ${DESIGN}.pdi
-

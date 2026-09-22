@@ -27,6 +27,7 @@ import time
 
 from slashkit.emit.hw.tcl_gen import generate_tcl
 from slashkit.emit.hw.project_gen import (
+    AVED_DESIGN_NAME,
     build_service_layer_rm,
     build_slash_rm,
     generate_util_report,
@@ -166,8 +167,8 @@ def link(config: LinkerConfiguration) -> None:
 
 
 def static_shell_path(args) -> None:
-    file_name = "amd_v80_gen5x8_25.1_nofpt.pdi" if args.nofpt else \
-        "amd_v80_gen5x8_25.1.pdi"
+    file_name = f"{AVED_DESIGN_NAME}_nofpt.pdi" if args.nofpt else \
+        f"{AVED_DESIGN_NAME}.pdi"
     package = "slashkit.resources.static_shell_compute" \
         if args.shell_type == "compute" else "slashkit.resources.static_shell"
     traversable = resources.files(package) / file_name

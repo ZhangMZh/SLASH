@@ -117,7 +117,28 @@ def test_base_shell_stage_preserves_existing_build_directory(tmp_path):
     )
 
     assert config.build_dir == build_dir.resolve()
+    assert config.aved_source == (
+        Path(__file__).resolve().parents[3] / "submodules" / "AVED"
+    )
     assert marker.exists()
+
+
+def test_installer_accepts_local_aved_source(tmp_path):
+    """Gen4 x16 installs can use the variant in a local AVED checkout."""
+    vivado = tmp_path / "vivado"
+    vivado.write_text("#!/bin/sh\n")
+    aved = tmp_path / "AVED"
+    aved.mkdir()
+    parser = argparse.ArgumentParser()
+    InstallerConfiguration.populate_argument_parser(parser)
+    args = parser.parse_args([
+        "--vivado", str(vivado),
+        "--out-dir", str(tmp_path),
+        "--aved-source", str(aved),
+        "--stage", "base-shell",
+    ])
+    config = InstallerConfiguration(args)
+    assert config.aved_source == aved.resolve()
 
 
 def test_config_cfg_pre_synth_reaches_pre_synth_tcls(tmp_path):

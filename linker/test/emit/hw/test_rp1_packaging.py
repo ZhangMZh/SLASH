@@ -38,8 +38,8 @@ def test_service_shell_keeps_rp1_bar_window():
         .read_text()
     )
 
-    assert "CPM_PCIE1_PF2_BAR4_QDMA_PREFETCHABLE {1}" in top_tcl
-    assert "CPM_PCIE1_PF2_BAR4_QDMA_SIZE {128}" in top_tcl
+    assert "CPM_PCIE0_PF2_BAR4_QDMA_PREFETCHABLE {1}" in top_tcl
+    assert "CPM_PCIE0_PF2_BAR4_QDMA_SIZE {128}" in top_tcl
     assert "0x20404000000 0x00030000000 0x04000000" in top_tcl
     assert "M04_INI {read_bw {500} write_bw {500} initial_boot {true}}" in top_tcl
     assert "assign_bd_address -offset 0x020200600000 -range 0x00200000" in top_tcl
