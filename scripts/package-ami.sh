@@ -57,6 +57,20 @@ sed -i "/^    DIST_ID_RHEL,$/a\\    DIST_ID_ROCKY," "${PKG_PY}"
 sed -i "s/DIST_RPM = \[DIST_ID_CENTOS, DIST_ID_REDHAT, DIST_ID_REDHAT2, DIST_ID_SLES, DIST_ID_RHEL\]/DIST_RPM = [DIST_ID_CENTOS, DIST_ID_REDHAT, DIST_ID_REDHAT2, DIST_ID_SLES, DIST_ID_RHEL, DIST_ID_ROCKY]/" "${PKG_PY}"
 sed -i "s/DIST_ID_CENTOS, DIST_ID_REDHAT, DIST_ID_REDHAT2, DIST_ID_RHEL\]/DIST_ID_CENTOS, DIST_ID_REDHAT, DIST_ID_REDHAT2, DIST_ID_RHEL, DIST_ID_ROCKY]/" "${GEN_PKG_PY}"
 
+# Patch in Debian support. AVED's generator only whitelists Ubuntu and the
+# RHEL family, so on Debian it aborts with 'Invalid Distribution ID'. It also
+# names the Ubuntu metapackage 'linux-headers' in the .deb dependency list,
+# which does not exist on Debian (which ships 'linux-headers-amd64'). Register
+# Debian as a deb distribution so the existing .deb code path is reused, and
+# fix that one dependency. Guarded by ID so Ubuntu and the RHEL family are
+# untouched.
+if [[ "$(. /etc/os-release && echo "${ID:-}")" == "debian" ]]; then
+    sed -i "/^DIST_ID_UBUNTU /a DIST_ID_DEBIAN  = 'Debian'" "${PKG_PY}"
+    sed -i "/^    DIST_ID_UBUNTU,$/a\\    DIST_ID_DEBIAN," "${PKG_PY}"
+    sed -i "s/DIST_DEB = \[DIST_ID_UBUNTU\]/DIST_DEB = [DIST_ID_UBUNTU, DIST_ID_DEBIAN]/" "${PKG_PY}"
+    sed -i "s/'gawk', 'linux-headers'\]/'gawk', 'linux-headers-amd64']/" "${GEN_PKG_PY}"
+fi
+
 cd "${AMI_SRC_DIR}"
 # --no_driver skips a pre-flight driver compilation check (build+clean) only;
 # it does NOT affect which files are included in the package.

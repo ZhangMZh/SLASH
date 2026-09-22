@@ -46,8 +46,18 @@ fi
 # 8 is slashkit's own default; naming it here makes it adjustable for machines sized
 # differently from the developer workstation the default was chosen for.
 INSTALL_ARGS+=(--jobs "${SLASH_ROOT_DESIGN_JOBS:-8}")
-python3 -m slashkit "${INSTALL_ARGS[@]}" --shell-type service --build-dir install.prj
-python3 -m slashkit "${INSTALL_ARGS[@]}" --shell-type compute --build-dir install.prj.compute
+python3 -m slashkit "${INSTALL_ARGS[@]}" --shell-type service --build-dir install.prj &
+service_pid=$!
+python3 -m slashkit "${INSTALL_ARGS[@]}" --shell-type compute --build-dir install.prj.compute &
+compute_pid=$!
+
+build_failed=0
+wait "$service_pid" || build_failed=1
+wait "$compute_pid" || build_failed=1
+if [[ "$build_failed" -ne 0 ]]; then
+    echo "ERROR: At least one shell build failed." >&2
+    exit 1
+fi
 popd
 
 # Vivado IP/synth logs capture the full environment (including RPM_BUILD_ROOT
