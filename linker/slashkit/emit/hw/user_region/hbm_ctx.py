@@ -93,7 +93,7 @@ def build_hbm_smartconnect_context(
         root_name = f"{base_name}_{h_idx:02d}"
         clk0 = "user_clk"
         clk1 = "[get_bd_ports static_region_clk]"
-        rst = "ilreduced_logic_0/Res"
+        rst = "rst_repl_hbm_sc/Q"
 
         hbm_root_create.append({
             "name": root_name,

@@ -928,35 +928,7 @@ update_compile_order -fileset sources_1
  ] [get_bd_pins /qdma_slave_bridge_noc/aclk0]
 
 
-  # Create instance: c_shift_ram_0, and set properties
-  set c_shift_ram_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_shift_ram:12.0 c_shift_ram_0 ]
-  set_property -dict [list \
-    CONFIG.Depth {1} \
-    CONFIG.Width {1} \
-  ] $c_shift_ram_0
-
-
-  # Create instance: ilreduced_logic_0, and set properties
-  set ilreduced_logic_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilreduced_logic:1.0 ilreduced_logic_0 ]
-  set_property -dict [list \
-    CONFIG.C_OPERATION {or} \
-    CONFIG.C_SIZE {1} \
-  ] $ilreduced_logic_0
-
-
-  # Create instance: util_ds_buf_0, and set properties
-  set util_ds_buf_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.2 util_ds_buf_0 ]
-  set_property CONFIG.C_BUF_TYPE {BUFG_FABRIC} $util_ds_buf_0
-
-  connect_bd_net -net util_ds_buf_0_BUFG_FABRIC_O  [get_bd_pins util_ds_buf_0/BUFG_FABRIC_O] \
-  [get_bd_pins ilreduced_logic_0/Op1]
-
-  connect_bd_net -net arstn_1  [get_bd_ports arstn] \
-  [get_bd_pins c_shift_ram_0/D]
-  
-  connect_bd_net -net c_shift_ram_0_Q  [get_bd_pins c_shift_ram_0/Q] \
-  [get_bd_pins util_ds_buf_0/BUFG_FABRIC_I]
-
+{% include "rm_reset.tcl" %}
 
   # Create interface connections
   connect_bd_intf_net -intf_net S00_INIS_0_1 [get_bd_intf_ports S_DCMAC_INIS0] [get_bd_intf_pins dcmac_axis_noc_s_0/S00_INIS]
@@ -995,7 +967,7 @@ update_compile_order -fileset sources_1
   connect_bd_intf_net -intf_net noc_virt_03_M00_INI [get_bd_intf_ports SL_VIRT_03] [get_bd_intf_pins noc_virt_03/M00_INI]
 
   # Create port connections
-  connect_bd_net -net user_clk_net  [get_bd_pins user_clk] \
+  connect_bd_net [get_bd_pins user_clk] \
   [get_bd_pins ddr_noc_0/aclk0] \
   [get_bd_pins ddr_noc_3/aclk0] \
   [get_bd_pins ddr_noc_2/aclk0] \
@@ -1058,7 +1030,7 @@ connect_bd_net [get_bd_pins {{ c.src_pin }}] [get_bd_pins user_clk]
 
 # === Connect kernel resets to ap_rst_n ===
 {% for r in resets %}
-connect_bd_net [get_bd_pins {{ r.src_pin }}] [get_bd_pins ilreduced_logic_0/Res]
+connect_bd_net [get_bd_pins {{ r.src_pin }}] [get_bd_pins rst_repl_kernel/Q]
 {% endfor %}
 
 # === Debug hub (paired with AXIS ILA) — created BEFORE the SmartConnect MI loop ===
@@ -1068,7 +1040,7 @@ connect_bd_net [get_bd_pins {{ r.src_pin }}] [get_bd_pins ilreduced_logic_0/Res]
 {% if debug_hub_enabled|default(false) %}
 set {{ debug_hub_name }} [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dbg_hub:2.0 {{ debug_hub_name }} ]
 connect_bd_net [get_bd_pins {{ debug_hub_name }}/aclk] [get_bd_pins user_clk]
-connect_bd_net [get_bd_pins {{ debug_hub_name }}/aresetn] [get_bd_pins ilreduced_logic_0/Res]
+connect_bd_net [get_bd_pins {{ debug_hub_name }}/aresetn] [get_bd_pins rst_repl_misc/Q]
 {% endif %}
 
 # === SmartConnects for AXI-Lite control ===
@@ -1083,7 +1055,7 @@ set_property -dict [list \
 
 # Clocks/Reset
 connect_bd_net [get_bd_pins {{ sc.name }}/aclk]    [get_bd_pins user_clk]
-connect_bd_net [get_bd_pins {{ sc.name }}/aresetn] [get_bd_pins ilreduced_logic_0/Res]
+connect_bd_net [get_bd_pins {{ sc.name }}/aresetn] [get_bd_pins rst_repl_misc/Q]
 
 # SI (slave) connection
 {% if sc.si_from.type == 'bd_port' %}
@@ -1168,7 +1140,7 @@ set_property -dict [list \
 
 # Clocks/Reset
 connect_bd_net [get_bd_pins {{ n.name }}/aclk]    [get_bd_pins user_clk]
-connect_bd_net [get_bd_pins {{ n.name }}/aresetn] [get_bd_pins ilreduced_logic_0/Res]
+connect_bd_net [get_bd_pins {{ n.name }}/aresetn] [get_bd_pins rst_repl_misc/Q]
 
 # SIs into this SmartConnect
 {% for si in n.si %}
@@ -1201,7 +1173,7 @@ set_property -dict [list \
 
 # Clocks/Reset
 connect_bd_net [get_bd_pins {{ n.name }}/aclk]    [get_bd_pins user_clk]
-connect_bd_net [get_bd_pins {{ n.name }}/aresetn] [get_bd_pins ilreduced_logic_0/Res]
+connect_bd_net [get_bd_pins {{ n.name }}/aresetn] [get_bd_pins rst_repl_misc/Q]
 
 # SIs into this SmartConnect
 {% for si in n.si %}
@@ -1232,7 +1204,7 @@ set_property -dict [list \
 
 # Clock / Reset
 connect_bd_net [get_bd_pins {{ n.name }}/aclk]    [get_bd_pins user_clk]
-connect_bd_net [get_bd_pins {{ n.name }}/aresetn] [get_bd_pins ilreduced_logic_0/Res]
+connect_bd_net [get_bd_pins {{ n.name }}/aresetn] [get_bd_pins rst_repl_misc/Q]
 
 # SI fan-in
 {% for si in n.si %}
@@ -1270,9 +1242,9 @@ connect_bd_intf_net [get_bd_intf_pins {{ e.src_pin }}] [get_bd_intf_pins {{ e.ds
 # {{ t.name }} -> {{ t.dst }}
 set {{ t.name }} [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_register_slice:2.1 {{ t.name }} ]
 
-# Clock / Reset (defaults to user_clk and arstn if not provided)
+# Clock / Reset (defaults to user_clk and the miscellaneous reset replica)
 connect_bd_net [get_bd_pins {{ t.name }}/aclk]    [get_bd_pins {{ t.clk|default('user_clk') }}]
-connect_bd_net [get_bd_pins {{ t.name }}/aresetn] [get_bd_pins {{ t.rst|default('ilreduced_logic_0/Res') }}]
+connect_bd_net [get_bd_pins {{ t.name }}/aresetn] [get_bd_pins {{ t.rst|default('rst_repl_misc/Q') }}]
 
 # Leave S_AXI unconnected on purpose
 
@@ -1297,7 +1269,7 @@ set_property -dict [list \
   CONFIG.NUM_SI   {{ "{" ~ n.num_si ~ "}" }} \
 ] ${{ n.name }}
 connect_bd_net [get_bd_pins {{ n.name }}/aclk]    [get_bd_pins user_clk]
-connect_bd_net [get_bd_pins {{ n.name }}/aresetn] [get_bd_pins ilreduced_logic_0/Res]
+connect_bd_net [get_bd_pins {{ n.name }}/aresetn] [get_bd_pins rst_repl_misc/Q]
 {% for si in n.si %}
 connect_bd_intf_net \
   [get_bd_intf_pins {{ si.src }}] \
@@ -1324,7 +1296,7 @@ set_property -dict [list \
 set_property CONFIG.C_SLOT_{{ s.idx }}_INTF_TYPE {{ "{" ~ s.intf_type ~ "}" }} [get_bd_cells {{ debug_axis_ila_name }}]
 {% endfor %}
 connect_bd_net [get_bd_pins {{ debug_axis_ila_name }}/clk] [get_bd_pins user_clk]
-connect_bd_net [get_bd_pins {{ debug_axis_ila_name }}/resetn] [get_bd_pins ilreduced_logic_0/Res]
+connect_bd_net [get_bd_pins {{ debug_axis_ila_name }}/resetn] [get_bd_pins rst_repl_misc/Q]
 {% for s in debug_axis_ila_slots %}
 connect_bd_intf_net [get_bd_intf_pins {{ debug_axis_ila_name }}/{{ s.slot_pin }}] [get_bd_intf_pins {{ s.src_pin }}]
 {% endfor %}
