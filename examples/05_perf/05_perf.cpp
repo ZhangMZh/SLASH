@@ -201,8 +201,8 @@ int main(int argc, char* argv[]) {
         const std::uint32_t expectedAcc = xorZeroToN(kPerfLength - 1u);
         std::size_t failures = 0;
         for (std::size_t i = 0; i < kernelCount; ++i) {
-            const std::uint32_t outAcc = kernels[i].read(kOutAccDataOffset);
             const std::uint32_t outAccCtrl = kernels[i].read(kOutAccCtrlOffset);
+            const std::uint32_t outAcc = kernels[i].read(kOutAccDataOffset);
             const bool valid = (outAccCtrl & 0x1u) != 0u;
 
             if (!valid || outAcc != expectedAcc) {
