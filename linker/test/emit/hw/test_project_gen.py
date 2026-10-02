@@ -210,6 +210,9 @@ def test_no_preload_when_libudev_absent(monkeypatch):
 
 
 def _rm_config(tmp_path):
+    (tmp_path / "system_map.xml").write_text(
+        "<SystemMap><ClockFrequency>200000000</ClockFrequency></SystemMap>"
+    )
     return SimpleNamespace(
         build_dir=tmp_path,
         ip_repository=tmp_path / "iprepo",

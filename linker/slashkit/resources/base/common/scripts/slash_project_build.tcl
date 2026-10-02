@@ -18,8 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 # ##################################################################################################
 
+source [file join [file dirname [info script]] user_clock.tcl]
+
 proc _slash_usage {} {
-    return "Expected -tclargs: --project-name <name> --ip-repo <path> --static-shell-dcp <path> --base-bd <path> --linker-results-dir <path> --rm-work-dir <path> --artifact-out-dir <path> --util-report-file <path> --jobs <n> --pre-synth-tcl <path> ..."
+    return "Expected -tclargs: --project-name <name> --ip-repo <path> --static-shell-dcp <path> --base-bd <path> --linker-results-dir <path> --rm-work-dir <path> --artifact-out-dir <path> --util-report-file <path> --user-clock-hz <Hz> --user-clock-xdc <path> --jobs <n> --pre-synth-tcl <path> ..."
 }
 
 proc _require_file {path label} {
@@ -77,7 +79,7 @@ while {$idx < [llength $argv]} {
     incr idx
 }
 
-foreach req {--project-name --ip-repo --static-shell-dcp --base-bd --linker-results-dir --rm-work-dir --artifact-out-dir --util-report-file} {
+foreach req {--project-name --ip-repo --static-shell-dcp --base-bd --linker-results-dir --rm-work-dir --artifact-out-dir --util-report-file --user-clock-hz --user-clock-xdc} {
     if {$opts($req) eq ""} {
         error "Missing required argument '$req'. [_slash_usage]"
     }
@@ -96,9 +98,7 @@ if {$user_clock_xdc ne ""} {
     set user_clock_xdc [file normalize $user_clock_xdc]
 }
 set user_clock_hz $opts(--user-clock-hz)
-if {$user_clock_hz ne "" && ![string is integer -strict $user_clock_hz]} {
-    error "Value for '--user-clock-hz' must be an integer, got '$user_clock_hz'."
-}
+slash_user_clock::positive_hz $user_clock_hz
 set jobs $opts(--jobs)
 
 file mkdir $rm_work_dir
@@ -166,7 +166,7 @@ foreach p [get_bd_intf_ports] {
 # connected downstream, so the retarget has to happen first.
 #
 # Only user_clk moves. The AXI interfaces crossing the partition boundary run on
-# static_region_clk at 400 MHz and are locked above; they are untouched by this.
+# the shell-specific static_region_clk and are locked above; they are untouched.
 if {$user_clock_hz ne ""} {
     set user_clk_port [get_bd_ports -quiet user_clk]
     if {$user_clk_port eq ""} {
@@ -187,19 +187,20 @@ foreach pre_synth_tcl $pre_synth_tcls {
     source $pre_synth_tcl
 }
 
-# Apply the user-region clock timing constraint (create_clock on user_clk),
-# derived from the requested --clock-hz target. Scoped to the slash cell so it
-# overrides, inside the reconfigurable module only, the 200 MHz clock the
-# abstract shell propagates in from the clocking wizard. See
-# _generate_user_clock_xdc in project_gen.py for why the override belongs at
-# the RM boundary rather than at the wizard output.
+# OOC synthesis can use a primary input clock. In implementation the MMCM and
+# both sides of the boundary must share one generated-clock relationship.
 if {$user_clock_xdc ne ""} {
-    puts "Applying user-clock constraint: $user_clock_xdc"
+    puts "Applying OOC-only user-clock constraint: $user_clock_xdc"
     _require_file $user_clock_xdc "user-clock XDC"
     add_files -fileset constrs_1 -norecurse $user_clock_xdc
-    set_property USED_IN {synthesis implementation} [get_files $user_clock_xdc]
-    set_property SCOPED_TO_CELLS {top_i/slash} [get_files $user_clock_xdc]
+    set_property USED_IN {synthesis} [get_files $user_clock_xdc]
+    # The OOC run's top is slash_base itself; top_i/slash exists only when
+    # linked into the parent. Keep get_ports user_clk at the OOC top scope.
 }
+
+# Install after user Tcl so its existing opt hook is preserved and the final
+# model is applied after all imported/OOC constraints have been loaded.
+slash_user_clock::configure_run $user_clock_hz [file join $rm_work_dir user_clock]
 
 launch_runs "${slash_rm_name}_synth_1" -jobs $jobs
 wait_on_run "${slash_rm_name}_synth_1"
@@ -212,7 +213,9 @@ launch_runs impl_1 -jobs $jobs
 wait_on_run impl_1
 open_run impl_1
 
-report_timing_summary -delay_type min_max -check_timing_verbose -max_paths 1 -input_pins -routable_nets -file $timing_report_file
+slash_user_clock::apply $user_clock_hz
+slash_user_clock::report [file join $rm_work_dir user_clock nominal]
+report_timing_summary -delay_type min_max -check_timing_verbose -max_paths 100 -input_pins -routable_nets -file $timing_report_file
 
 set partial_pdi [file join $artifact_out_dir "top_i_slash_slash_${proj_name}_inst_0_partial.pdi"]
 write_device_image -cell top_i/slash -force $partial_pdi
@@ -228,4 +231,8 @@ close_project
 set routed_dcp [file join $rm_work_dir "${slash_proj_name}.runs" "impl_1" "top_wrapper_routed.dcp"]
 _require_file $routed_dcp "routed top checkpoint"
 open_checkpoint $routed_dcp
+slash_user_clock::apply $user_clock_hz
+# Characterization is performed on the reopened checkpoint, never on the image
+# generation design. The procedure also restores all MMCM properties on error.
+slash_user_clock::characterize_runtime $user_clock_hz [file join $rm_work_dir user_clock runtime]
 write_debug_probes -cell top_i/slash -file $ltx_file
