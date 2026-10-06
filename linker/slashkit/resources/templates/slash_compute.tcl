@@ -892,16 +892,23 @@ connect_bd_intf_net [get_bd_intf_pins {{ r.sc_name }}/M00_AXI] [get_bd_intf_pins
 connect_bd_intf_net [get_bd_intf_pins {{ e.src_pin }}] [get_bd_intf_pins {{ e.dst_pin }}]
 {% endfor %}
 
-# === AXI Register Slice terminators for UNUSED memory endpoints ===
+# === Combinational AXI terminators for UNUSED memory endpoints ===
 {% for t in axi_terminators|default([]) %}
 # {{ t.name }} -> {{ t.dst }}
 set {{ t.name }} [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_register_slice:2.1 {{ t.name }} ]
+# Keep the interface adapter, but no pipeline/reset registers on idle ports.
+set_property -dict [list \
+  CONFIG.REG_AW {0} CONFIG.REG_AR {0} CONFIG.REG_W {0} \
+  CONFIG.REG_R {0} CONFIG.REG_B {0} CONFIG.USE_AUTOPIPELINING {0} \
+] ${{ t.name }}
 
 # Clock / Reset (defaults to user_clk and the miscellaneous reset replica)
 connect_bd_net [get_bd_pins {{ t.name }}/aclk]    [get_bd_pins {{ t.clk|default('user_clk') }}]
 connect_bd_net [get_bd_pins {{ t.name }}/aresetn] [get_bd_pins {{ t.rst|default('rst_repl_misc/Q') }}]
 
-# Leave S_AXI unconnected on purpose
+# Vivado ties the unconnected S_AXI inputs to interface defaults: all three
+# VALID signals and both response READY signals are zero. Bypass propagates
+# these constants to M_AXI without adding clocked logic.
 
 # Connect M_AXI to the free destination pin
 connect_bd_intf_net [get_bd_intf_pins {{ t.name }}/M_AXI] [get_bd_intf_pins {{ t.dst }}]
