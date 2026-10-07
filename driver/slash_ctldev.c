@@ -45,6 +45,8 @@
 #include "slash.h"
 #include "slash_chrdev.h"
 #include "slash_dmabuf.h"
+#include "slash_pcie.h"
+#include <linux/capability.h>
 
 static int slash_ctldev_set_bar_info(struct pci_dev *pdev, struct slash_ctldev *ctldev);
 static int slash_ctldev_create_bar_dmabufs(struct slash_ctldev *ctldev);
@@ -355,6 +357,31 @@ static long slash_ctldev_ioctl(struct slash_ctldev *ctldev, unsigned int op,
 
     dev_dbg(&pdev->dev, "ctldev: ioctl op=0x%x\n", op);
     switch(op) {
+    case SLASH_CTLDEV_IOCTL_GET_P2P_RANGE_FD: {
+        struct slash_ioctl_p2p_range req = {0};
+        struct dma_buf *dmabuf;
+        u32 user_size;
+        int fd;
+
+        if (!capable(CAP_SYS_RAWIO))
+            return -EPERM;
+        if (copy_from_user(&user_size, (void __user *)arg, sizeof(user_size)))
+            return -EFAULT;
+        if (user_size < SLASH_IOCTL_P2P_RANGE_MIN_SIZE)
+            return -EINVAL;
+        if (copy_from_user(&req, (void __user *)arg, min_t(size_t, user_size, sizeof(req))))
+            return -EFAULT;
+        if (req.flags & ~O_CLOEXEC)
+            return -EINVAL;
+
+        dmabuf = slash_pcie_export_p2p(pdev, req.hbm_addr, req.length);
+        if (IS_ERR(dmabuf))
+            return PTR_ERR(dmabuf);
+        fd = dma_buf_fd(dmabuf, req.flags);
+        if (fd < 0)
+            dma_buf_put(dmabuf);
+        return fd;
+    }
     case SLASH_CTLDEV_IOCTL_GET_BAR_INFO: {
         struct slash_ioctl_bar_info bar_info = {0};
         struct slash_ctldev_bar *bar = NULL;

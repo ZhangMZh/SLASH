@@ -20,8 +20,8 @@
  * Provides a dma-buf wrapper around a PCI BAR so that userspace can
  * obtain a file descriptor and mmap the BAR for direct MMIO access.
  * Only userspace mmap is supported; kernel-side device attachment is
- * intentionally rejected because a PCI BAR is device I/O memory, not
- * system RAM.
+ * intentionally rejected: peer attachment mapping is not implemented.
+ * Userspace I/O-memory registration uses the mmap path instead.
  */
 
 #ifndef SLASH_DMABUF_H
@@ -42,6 +42,13 @@
  * Return: Pointer to the new dma_buf on success, ERR_PTR on failure.
  */
 struct dma_buf *slash_bar_dmabuf_create(struct pci_dev *pdev, int bar_number);
+
+struct slash_p2p_region;
+/* Caller holds region->lock and has verified that the region is live.
+ * The returned object owns a region reference and exports only this range.
+ * Its mmap eagerly installs PFNs for hipHostRegisterIoMemory. */
+struct dma_buf *slash_bar_dmabuf_create_range(struct slash_p2p_region *region,
+                                             u64 offset, u64 length);
 
 /**
  * slash_bar_dmabuf_destroy() - Release a BAR dma-buf.

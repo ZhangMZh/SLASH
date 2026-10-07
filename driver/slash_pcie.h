@@ -26,6 +26,26 @@
 #define SLASH_PCIE_H
 
 #include <linux/init.h>
+#include <linux/kref.h>
+#include <linux/mutex.h>
+#include <linux/pci.h>
+
+struct dma_buf;
+
+/* The PCI binding and each exported range own a reference. A reference
+ * preserves this object, not hardware across reset/unbind. */
+struct slash_p2p_region {
+    struct kref ref;
+    struct mutex lock;
+    struct pci_dev *pdev;
+    resource_size_t start;
+    resource_size_t len;
+    bool dead;
+};
+
+void slash_p2p_region_put(struct slash_p2p_region *region);
+struct dma_buf *slash_pcie_export_p2p(struct pci_dev *pf2,
+                                     u64 hbm_addr, u64 length);
 
 /**
  * slash_pcie_init() - Register the SLASH PCI driver with the kernel.

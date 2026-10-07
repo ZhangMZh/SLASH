@@ -32,9 +32,12 @@
 
 #include <linux/module.h>
 #include <linux/printk.h>
+#include <linux/slab.h>
+#include <linux/mm.h>
 
 #include "slash.h"
 #include "slash_ctldev.h"
+#include "slash_dmabuf.h"
 #include "slash_hotplug_driver.h"
 
 static int slash_pcie_probe(struct pci_dev *pdev, const struct pci_device_id *id);
@@ -44,6 +47,7 @@ static void slash_pcie_remove(struct pci_dev *pdev);
 static const struct pci_device_id slash_pcie_ids[] = {
     {PCI_DEVICE(SLASH_PCIE_VENDOR_ID, SLASH_PCIE_DEVICE_ID)},
     {PCI_DEVICE(SLASH_PCIE_VENDOR_ID, SLASH_PCIE_DEVICE_ID_LEGACY)},
+    {PCI_DEVICE(SLASH_PCIE_VENDOR_ID, SLASH_P2P_DEVICE_ID)},
     {0,}
 };
 MODULE_DEVICE_TABLE(pci, slash_pcie_ids);
@@ -54,6 +58,112 @@ static struct pci_driver slash_pcie_driver = {
     .probe = slash_pcie_probe,
     .remove = slash_pcie_remove,
 };
+
+static void slash_p2p_region_release(struct kref *ref)
+{
+    struct slash_p2p_region *region = container_of(ref, struct slash_p2p_region, ref);
+
+    pci_dev_put(region->pdev);
+    kfree(region);
+}
+
+void slash_p2p_region_put(struct slash_p2p_region *region)
+{
+    kref_put(&region->ref, slash_p2p_region_release);
+}
+
+static int slash_p2p_probe(struct pci_dev *pdev)
+{
+    struct slash_p2p_region *region;
+    int err;
+
+    if (PCI_FUNC(pdev->devfn) != SLASH_P2P_PF)
+        return -EINVAL;
+    if (!(pci_resource_flags(pdev, SLASH_P2P_BAR) & IORESOURCE_MEM) ||
+        !pci_resource_start(pdev, SLASH_P2P_BAR) ||
+        pci_resource_len(pdev, SLASH_P2P_BAR) < SLASH_P2P_HBM_SIZE)
+        return -ENODEV;
+
+    region = kzalloc(sizeof(*region), GFP_KERNEL);
+    if (!region)
+        return -ENOMEM;
+    err = pci_enable_device_mem(pdev);
+    if (err)
+        goto err_free;
+    err = pci_request_region(pdev, SLASH_P2P_BAR, "slash_p2p");
+    if (err)
+        goto err_disable;
+
+    kref_init(&region->ref);
+    mutex_init(&region->lock);
+    region->pdev = pci_dev_get(pdev);
+    region->start = pci_resource_start(pdev, SLASH_P2P_BAR);
+    region->len = pci_resource_len(pdev, SLASH_P2P_BAR);
+    pci_set_drvdata(pdev, region);
+    /* PF3 is only a target; it does not require bus mastering. BAR size
+     * alone cannot prove its translation. The application must verify
+     * BAR/HBM aliasing before registering the range with a GPU. */
+    dev_info(&pdev->dev, "PF3 BAR2 ready for experimental range exports\n");
+    return 0;
+
+err_disable:
+    pci_disable_device(pdev);
+err_free:
+    kfree(region);
+    return err;
+}
+
+static void slash_p2p_remove(struct pci_dev *pdev)
+{
+    struct slash_p2p_region *region = pci_get_drvdata(pdev);
+
+    mutex_lock(&region->lock);
+    region->dead = true;
+    pci_set_drvdata(pdev, NULL);
+    pci_release_region(pdev, SLASH_P2P_BAR);
+    pci_disable_device(pdev);
+    mutex_unlock(&region->lock);
+    /* Existing GPU mappings cannot be revoked by this minimal exporter.
+     * Users must unregister them before unbinding/resetting the board. */
+    slash_p2p_region_put(region);
+}
+
+struct dma_buf *slash_pcie_export_p2p(struct pci_dev *pf2,
+                                     u64 hbm_addr, u64 length)
+{
+    struct pci_dev *pf3;
+    struct slash_p2p_region *region;
+    struct dma_buf *buf = ERR_PTR(-ENODEV);
+    u64 offset;
+
+    if (hbm_addr < SLASH_P2P_HBM_BASE || !length ||
+        !IS_ALIGNED(hbm_addr, PAGE_SIZE) || !IS_ALIGNED(length, PAGE_SIZE))
+        return ERR_PTR(-EINVAL);
+    offset = hbm_addr - SLASH_P2P_HBM_BASE;
+    if (offset >= SLASH_P2P_HBM_SIZE || length > SLASH_P2P_HBM_SIZE - offset ||
+        length > SLASH_P2P_BANK_SIZE - (offset % SLASH_P2P_BANK_SIZE))
+        return ERR_PTR(-EINVAL);
+
+    pf3 = pci_get_domain_bus_and_slot(pci_domain_nr(pf2->bus), pf2->bus->number,
+                                      PCI_DEVFN(PCI_SLOT(pf2->devfn), SLASH_P2P_PF));
+    if (!pf3)
+        return buf;
+    /* Serialize lookup with PF3 probe/remove; no probe-order dependency. */
+    device_lock(&pf3->dev);
+    if (pf3->driver == &slash_pcie_driver &&
+        pf3->vendor == SLASH_PCIE_VENDOR_ID && pf3->device == SLASH_P2P_DEVICE_ID) {
+        region = pci_get_drvdata(pf3);
+        if (region) {
+            mutex_lock(&region->lock);
+            if (!region->dead)
+                buf = slash_bar_dmabuf_create_range(region, offset, length);
+            mutex_unlock(&region->lock);
+        }
+    }
+    device_unlock(&pf3->dev);
+    pci_dev_put(pf3);
+    return buf;
+}
 
 /**
  * slash_pcie_probe() - Bind to a SLASH control function.
@@ -75,6 +185,9 @@ static int slash_pcie_probe(struct pci_dev *pdev, const struct pci_device_id *id
     int err;
 
     (void) id; /* Unused */
+
+    if (pdev->device == SLASH_P2P_DEVICE_ID)
+        return slash_p2p_probe(pdev);
 
     dev_info(&pdev->dev, "slash: probe start for %s\n", pci_name(pdev));
     dev_dbg(&pdev->dev, "slash: vendor=0x%04x device=0x%04x fn=%u\n", pdev->vendor, pdev->device, PCI_FUNC(pdev->devfn));
@@ -130,6 +243,10 @@ err_put_device:
  */
 static void slash_pcie_remove(struct pci_dev *pdev)
 {
+    if (pdev->device == SLASH_P2P_DEVICE_ID) {
+        slash_p2p_remove(pdev);
+        return;
+    }
     dev_info(&pdev->dev, "slash: remove start for %s\n", pci_name(pdev));
 
     slash_ctldev_destroy(pdev);
