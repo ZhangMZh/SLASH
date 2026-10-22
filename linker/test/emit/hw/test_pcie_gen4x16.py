@@ -21,11 +21,16 @@ def test_gen4_shell_preserves_all_host_functions(shell):
     assert config["CPM_PCIE0_TL_PF_ENABLE_REG"] == "4"
     for pf, device in enumerate(["50b4", "50c1", "50c2", "50c3"]):
         assert config[f"CPM_PCIE0_PF{pf}_CFG_DEV_ID"] == device
-    # Preserve the original PF3 declarations, including implicit BAR types.
-    for bar, address in [(0, "0x4000000000"), (2, "0x60000000000")]:
+    # Compute exposes HBM through BAR2; service retains its DDR mapping.
+    bar2_address = ("0x0000004000000000" if shell == "compute"
+                    else "0x60000000000")
+    for bar, address in [(0, "0x4000000000"), (2, bar2_address)]:
         prefix = f"CPM_PCIE0_PF3_BAR{bar}_QDMA_"
         assert config[prefix + "64BIT"] == "1"
-        assert prefix + "TYPE" not in config
+        if shell == "compute" and bar == 2:
+            assert config[prefix + "TYPE"] == "AXI_Bridge_Master"
+        else:
+            assert prefix + "TYPE" not in config
         assert config[prefix + "PREFETCHABLE"] == "1"
         assert config[prefix + "SCALE"] == "Gigabytes"
         assert config[prefix + "SIZE"] == "32"
