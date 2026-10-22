@@ -158,7 +158,8 @@ def _aximm_width_from_ports(
             return None
         widths.add(abs(left - right) + 1)
     if len(widths) > 1:
-        raise ValueError(f"{busif_name}: inconsistent AXI RDATA/WDATA widths: {sorted(widths)}")
+        raise ValueError(
+            f"{busif_name}: inconsistent AXI RDATA/WDATA widths: {sorted(widths)}")
     return next(iter(widths), None)
 
 # ---------- memory map parsing ----------

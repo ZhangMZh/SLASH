@@ -235,7 +235,9 @@ int main(int argc, char* argv[]) {
         const std::uint64_t totalBytes = 2ull * bytesPerKernel * static_cast<std::uint64_t>(kernelCount);
         std::cout << std::fixed << std::setprecision(2)
                   << "Combined read+write throughput: " << gibPerSecond(totalBytes, totalElapsed)
-                  << " GiB/s aggregate" << std::endl;
+                  << " GiB/s aggregate; "
+                  << gibPerSecond(totalBytes, totalElapsed) * (1073741824.0 / 1e9)
+                  << " GB/s aggregate" << std::endl;
 
         if (failures != 0) {
             std::cerr << failures << " kernel(s) produced invalid output" << std::endl;

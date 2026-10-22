@@ -67,13 +67,15 @@ def build_hbm_smartconnect_context(
                 continue
             idx = _to_int_or_none(tgt.get("index"))
             if idx is None or idx < 0:
-                raise ValueError(f"{inst.name}.{k_port}: HBM requires a valid channel index")
+                raise ValueError(
+                    f"{inst.name}.{k_port}: HBM requires a valid channel index")
             if port.width not in supported_widths:
                 raise ValueError(
                     f"{inst.name}.{k_port}: unsupported or unknown HBM AXI width "
                     f"{port.width!r}; supply the actual DATA_WIDTH in component.xml"
                 )
-            by_hbm[idx].append({"src": f"{inst.name}/{k_port}", "width": port.width})
+            by_hbm[idx].append(
+                {"src": f"{inst.name}/{k_port}", "width": port.width})
 
     nodes, roots, inputs, outputs = [], [], [], []
     for idx, sources in sorted(by_hbm.items()):
@@ -81,7 +83,8 @@ def build_hbm_smartconnect_context(
         # The existing static shell contract is 256 bits. Do not silently
         # reinterpret an incompatible future boundary as the current one.
         if dst.width not in (None, 256):
-            raise ValueError(f"HBM{idx}: expected a 256-bit static shell boundary")
+            raise ValueError(
+                f"HBM{idx}: expected a 256-bit static shell boundary")
         width = max(256, *(s["width"] for s in sources))
         name = f"{base_name}_{idx:02d}"
         merged = len(sources) == 1 and sources[0]["width"] >= 256
@@ -110,7 +113,8 @@ def build_hbm_smartconnect_context(
                 next_level.append({"src": f"{sc}/M00_AXI", "width": width})
             current = next_level
             level += 1
-        inputs.append({"src_pin": current[0]["src"], "dst_pin": f"{name}/S00_AXI"})
+        inputs.append(
+            {"src_pin": current[0]["src"], "dst_pin": f"{name}/S00_AXI"})
         outputs.append({
             "src_pin": (f"{name}_out/M_AXI" if merged else
                         f"{name}_dwidth/M00_AXI" if width != 256 else f"{name}_wide/M_AXI"),

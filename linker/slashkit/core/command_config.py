@@ -493,7 +493,8 @@ class InstallerConfiguration(CommandConfiguration):
 
         self._aved_repo: str = args.aved_repo
         self._aved_ref: str = args.aved_ref
-        local_aved = Path(__file__).resolve().parents[3] / "submodules" / "AVED"
+        local_aved = Path(__file__).resolve(
+        ).parents[3] / "submodules" / "AVED"
         requested_aved = getattr(args, "aved_source", None)
         self._aved_source: Optional[Path] = (
             requested_aved.expanduser().resolve() if requested_aved is not None

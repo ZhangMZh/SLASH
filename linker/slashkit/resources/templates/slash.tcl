@@ -1062,6 +1062,29 @@ connect_bd_net [get_bd_pins {{ debug_hub_name }}/aclk] [get_bd_pins user_clk]
 connect_bd_net [get_bd_pins {{ debug_hub_name }}/aresetn] [get_bd_pins rst_repl_misc/Q]
 {% endif %}
 
+# === AXI-Lite window anchor — created BEFORE the SmartConnect MI loop ===
+# Occupies the last 64 KiB of the 128 MiB control aperture the static shell
+# declares for this partition, so the span of assigned AXI-Lite segments is the
+# full aperture in every design. The NoC NSU is sized from that span -- not from
+# the CONFIG.APERTURES set on axi_noc_0/M00_AXI above, which Vivado 2025.1
+# retains but does not use -- so without the anchor every RM gets a different
+# NSU address size and pr_verify rejects it with NOC-Validation-16. See issue
+# 228 and emit/hw/user_region/anchor_ctx.py.
+#
+# Like the debug hub, the cell must exist before the SmartConnect MI loop wires
+# <sc>/M##_AXI -> {{ window_anchor_name }}/S_AXI, and its address segment is
+# placed by the AXI-Lite address loop (it is passed as an extra slave).
+{% if window_anchor_enabled|default(false) %}
+set {{ window_anchor_name }} [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 {{ window_anchor_name }} ]
+set_property -dict [list \
+  CONFIG.C_ALL_OUTPUTS {1} \
+  CONFIG.C_GPIO_WIDTH  {1} \
+  CONFIG.C_IS_DUAL     {0} \
+] [get_bd_cells {{ window_anchor_name }}]
+connect_bd_net [get_bd_pins {{ window_anchor_name }}/s_axi_aclk] [get_bd_pins user_clk]
+connect_bd_net [get_bd_pins {{ window_anchor_name }}/s_axi_aresetn] [get_bd_pins rst_repl_misc/Q]
+{% endif %}
+
 # === SmartConnects for AXI-Lite control ===
 {% for sc in smartconnects %}
 # Create {{ sc.name }}
@@ -1376,26 +1399,51 @@ proc slash_check_hbm_cdc {cell width target_width} {
     set design [file rootname [file tail [lindex $nested 0]]]
     try {
         current_bd_design [get_bd_designs $design]
+        # A READ_ONLY or WRITE_ONLY master makes SmartConnect omit the unused
+        # direction's nodes entirely, so inspect the channels that exist rather
+        # than assuming all five. HLS declares a single direction whenever a
+        # pointer argument is only read or only written, which is the common
+        # case, not an edge case.
+        set present {}
         foreach channel {ar aw w r b} {
+            if {[llength [get_bd_cells -quiet s00_nodes/s00_${channel}_node]]} {
+                lappend present $channel
+            }
+        }
+        # Fail loudly rather than degrade into verifying nothing.
+        if {![llength $present]} {
+            error "HBM $cell: no AXI channel nodes found; cannot verify the CDC"
+        }
+        if {[lsearch -exact $present r] < 0 && [lsearch -exact $present w] < 0} {
+            error "HBM $cell: no read or write data channel; cannot verify the payload width"
+        }
+        foreach channel $present {
             set node [get_bd_cells s00_nodes/s00_${channel}_node]
             if {[get_property CONFIG.ACLK_RELATIONSHIP $node] != 0 ||
                 [get_property CONFIG.SYNCHRONIZATION_STAGES $node] < 3} {
                 error "HBM $cell/$channel: expected asynchronous CDC with >=3 synchronization stages"
             }
         }
-        set converter [get_bd_cells s00_entry_pipeline/s00_si_converter]
-        foreach direction {R W} {
+        set converter [get_bd_cells -quiet s00_entry_pipeline/s00_si_converter]
+        foreach {direction channel} {R r W w} {
+            if {![llength $converter] || [lsearch -exact $present $channel] < 0} {
+                continue
+            }
             if {[get_property CONFIG.${direction}DATA_WIDTH $converter] != $width ||
                 [get_property CONFIG.MSC000_${direction}DATA_WIDTH $converter] != $target_width} {
                 error "HBM $cell: unexpected $direction converter widths"
             }
         }
+        # USER_WIDTH describes AXI sideband storage, not the data payload.
         foreach channel {r w} {
-            if {[get_property CONFIG.USER_WIDTH [get_bd_cells s00_nodes/s00_${channel}_node]] != $width} {
+            if {[lsearch -exact $present $channel] < 0} {
+                continue
+            }
+            if {8 * [get_property CONFIG.MAX_PAYLD_BYTES [get_bd_cells s00_nodes/s00_${channel}_node]] != $width} {
                 error "HBM $cell/$channel: asynchronous payload width changed"
             }
         }
-        puts "HBM_CDC $cell: verified asynchronous CDC on all five AXI channels; read/write payload width $width"
+        puts "HBM_CDC $cell: verified asynchronous CDC on AXI channels \[$present\]; read/write payload width $width"
     } finally {
         current_bd_design $parent
     }

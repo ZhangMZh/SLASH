@@ -490,7 +490,8 @@ def _generate_user_clock_xdc(
     """
     if (not isinstance(target_hz, int) or isinstance(target_hz, bool)
             or not 0 < target_hz <= 0xFFFFFFFF):
-        raise ValueError("User clock frequency must be a positive uint32 in Hz")
+        raise ValueError(
+            "User clock frequency must be a positive uint32 in Hz")
     period_ns = 1e9 / target_hz
     xdc_path = config.build_dir / "user_clock_ooc.xdc"
     xdc_path.write_text(
