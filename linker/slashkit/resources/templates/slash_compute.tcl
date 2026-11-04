@@ -384,6 +384,10 @@ update_compile_order -fileset sources_1
    CONFIG.ASSOCIATED_BUSIF {S00_AXI} \
  ] [get_bd_pins /ddr_noc_11/aclk0]
 
+  # MEM ingress NMU sites are not set here: the static shell pins them
+  # (base/compute/scripts/slash_base.tcl) and locks the NoC paths that cross
+  # into the user region, so a PHYSICAL_LOC here could only repeat them, and a
+  # stale one fails DFX DRC (HDPR-122).
   # Create instance: hbm_vnoc_00, and set properties
   set hbm_vnoc_00 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_noc hbm_vnoc_00 ]
   set_property -dict [list \
@@ -637,9 +641,10 @@ set ilreduced_logic_0 [create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_h
 set_property -dict [list CONFIG.C_OPERATION {or} CONFIG.C_SIZE {1}] $ilreduced_logic_0
 
 connect_bd_net [get_bd_ports arstn] [get_bd_pins c_shift_ram_0/D]
-connect_bd_net [get_bd_pins c_shift_ram_0/Q] [get_bd_pins ilreduced_logic_0/Op1]
+connect_bd_net -net c_shift_ram_0_Q  [get_bd_pins c_shift_ram_0/Q] \
+  [get_bd_pins ilreduced_logic_0/Op1]
 
-{% for family in ['hbm_sc', 'kernel', 'misc'] %}
+{% for family in ['hbm_sc', 'misc'] %}
 set rst_repl_{{ family }} [create_bd_cell -type ip -vlnv xilinx.com:ip:c_shift_ram:12.0 rst_repl_{{ family }}]
 set_property -dict [list CONFIG.Depth {1} CONFIG.Width {1}] $rst_repl_{{ family }}
 connect_bd_net [get_bd_ports user_clk] [get_bd_pins rst_repl_{{ family }}/CLK]
@@ -713,8 +718,18 @@ connect_bd_net [get_bd_pins {{ c.src_pin }}] [get_bd_pins user_clk]
 {% endfor %}
 
 # === Connect kernel resets to ap_rst_n ===
+# Kernels take reset from 1-deep replicas of the spine: one per SLR that
+# [floorplan] pins kernels to, placed in that SLR's pblock so its fanout stays
+# in the SLR, and one for unpinned kernels. Kernel and interconnect replicas
+# all leave reset on the same cycle, one after the spine.
+{% for name in reset_replicas %}
+set {{ name }} [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_shift_ram:12.0 {{ name }} ]
+set_property -dict [list CONFIG.Depth {1} CONFIG.Width {1}] ${{ name }}
+connect_bd_net [get_bd_pins {{ name }}/CLK] [get_bd_pins user_clk]
+connect_bd_net [get_bd_pins {{ name }}/D] [get_bd_pins ilreduced_logic_0/Res]
+{% endfor %}
 {% for r in resets %}
-connect_bd_net [get_bd_pins {{ r.src_pin }}] [get_bd_pins rst_repl_kernel/Q]
+connect_bd_net [get_bd_pins {{ r.src_pin }}] [get_bd_pins {{ r.replica }}/Q]
 {% endfor %}
 
 # === Debug hub (paired with AXIS ILA) — created BEFORE the SmartConnect MI loop ===
@@ -915,7 +930,15 @@ connect_bd_intf_net [get_bd_intf_pins {{ r.sc_name }}/M00_AXI] [get_bd_intf_pins
 connect_bd_intf_net [get_bd_intf_pins {{ e.src_pin }}] [get_bd_intf_pins {{ e.dst_pin }}]
 {% endfor %}
 
-# === Combinational AXI terminators for UNUSED memory endpoints ===
+# === AXI Register Slice terminators for UNUSED memory endpoints ===
+# A terminator only has to present an idle master to its unused NoC port, so
+# its reset is held asserted. With the combinational bypass below, idle
+# S_AXI defaults keep VALIDs low so no transaction is ever issued. Keeping
+# these cells off the reset spine avoids fanout to scattered NoC ports.
+{% if axi_terminators|default([]) %}
+set term_rst_asserted [create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconstant:1.0 term_rst_asserted]
+set_property -dict [list CONFIG.CONST_WIDTH {1} CONFIG.CONST_VAL {0}] $term_rst_asserted
+{% endif %}
 {% for t in axi_terminators|default([]) %}
 # {{ t.name }} -> {{ t.dst }}
 set {{ t.name }} [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_register_slice:2.1 {{ t.name }} ]
@@ -925,9 +948,8 @@ set_property -dict [list \
   CONFIG.REG_R {0} CONFIG.REG_B {0} CONFIG.USE_AUTOPIPELINING {0} \
 ] ${{ t.name }}
 
-# Clock / Reset (defaults to user_clk and the miscellaneous reset replica)
 connect_bd_net [get_bd_pins {{ t.name }}/aclk]    [get_bd_pins {{ t.clk|default('user_clk') }}]
-connect_bd_net [get_bd_pins {{ t.name }}/aresetn] [get_bd_pins {{ t.rst|default('rst_repl_misc/Q') }}]
+connect_bd_net [get_bd_pins {{ t.name }}/aresetn] [get_bd_pins term_rst_asserted/dout]
 
 # Vivado ties the unconnected S_AXI inputs to interface defaults: all three
 # VALID signals and both response READY signals are zero. Bypass propagates

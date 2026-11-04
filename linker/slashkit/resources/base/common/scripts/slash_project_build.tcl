@@ -47,6 +47,7 @@ array set opts {
     --util-report-file ""
     --user-clock-xdc ""
     --user-clock-hz ""
+    --floorplan-xdc ""
     --jobs 8
 }
 
@@ -96,6 +97,10 @@ set util_report_file $opts(--util-report-file)
 set user_clock_xdc $opts(--user-clock-xdc)
 if {$user_clock_xdc ne ""} {
     set user_clock_xdc [file normalize $user_clock_xdc]
+}
+set floorplan_xdc $opts(--floorplan-xdc)
+if {$floorplan_xdc ne ""} {
+    set floorplan_xdc [file normalize $floorplan_xdc]
 }
 set user_clock_hz $opts(--user-clock-hz)
 slash_user_clock::positive_hz $user_clock_hz
@@ -196,6 +201,19 @@ if {$user_clock_xdc ne ""} {
     set_property USED_IN {synthesis} [get_files $user_clock_xdc]
     # The OOC run's top is slash_base itself; top_i/slash exists only when
     # linked into the parent. Keep get_ports user_clk at the OOC top scope.
+}
+
+# Apply the [floorplan] pblocks: child pblocks of pblock_slash, which the static
+# checkpoint brings in, holding the kernels pinned to each SLR. Implementation
+# only, and unscoped because it names pblock_slash and full top_i/slash/... paths.
+# LATE, because the checkpoint's own constraints create pblock_slash and then add
+# all of top_i/slash to it, which would pull pinned kernels back to the parent.
+if {$floorplan_xdc ne ""} {
+    puts "Applying floorplan constraints: $floorplan_xdc"
+    _require_file $floorplan_xdc "floorplan XDC"
+    add_files -fileset constrs_1 -norecurse $floorplan_xdc
+    set_property USED_IN {implementation} [get_files $floorplan_xdc]
+    set_property PROCESSING_ORDER LATE [get_files $floorplan_xdc]
 }
 
 # Install after user Tcl so its existing opt hook is preserved and the final

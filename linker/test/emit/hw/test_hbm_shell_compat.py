@@ -88,7 +88,7 @@ def test_generate_hbm_with_anchor_and_local_reset_distribution(tmp_path, shell, 
                     if not line.lstrip().startswith("#"))
     assert "connect_bd_net [get_bd_pins slash_window_anchor/s_axi_aresetn] [get_bd_pins rst_repl_misc/Q]" in tcl
     assert "connect_bd_net [get_bd_pins slash_window_anchor/s_axi_aclk] [get_bd_pins user_clk]" in tcl
-    assert "[get_bd_pins kernel_0_0/ap_rst_n] [get_bd_pins rst_repl_kernel/Q]" in tcl
+    assert "[get_bd_pins kernel_0_0/ap_rst_n] [get_bd_pins rst_repl_kernels/Q]" in tcl
     assert "-offset 0x020207FF0000 -range 0x00010000" in tcl
     assert "[get_bd_addr_segs slash_window_anchor/S_AXI/Reg]" in tcl
     assert "[get_bd_intf_pins slash_window_anchor/S_AXI]" in tcl
