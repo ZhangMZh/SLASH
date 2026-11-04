@@ -74,7 +74,7 @@ def test_hbm_reduction_reaches_every_source_once(widths):
 
 @pytest.mark.parametrize("shell", list(ShellType))
 @pytest.mark.parametrize("widths", [[512], [64], [256, 512], [512] * 17])
-def test_generate_hbm_with_anchor_and_local_reset_distribution(tmp_path, shell, widths):
+def test_generate_hbm_with_anchor_and_upstream_reset_distribution(tmp_path, shell, widths):
     instances, bd = hbm_design(widths)
     config = SimpleNamespace(
         block_design_ports=bd, configuration=ConnectivityConfig(),
@@ -86,7 +86,7 @@ def test_generate_hbm_with_anchor_and_local_reset_distribution(tmp_path, shell, 
     generate_tcl(config)
     tcl = "\n".join(line for line in (tmp_path / "slash.tcl").read_text().splitlines()
                     if not line.lstrip().startswith("#"))
-    assert "connect_bd_net [get_bd_pins slash_window_anchor/s_axi_aresetn] [get_bd_pins rst_repl_misc/Q]" in tcl
+    assert "connect_bd_net [get_bd_pins slash_window_anchor/s_axi_aresetn] [get_bd_pins ilreduced_logic_0/Res]" in tcl
     assert "connect_bd_net [get_bd_pins slash_window_anchor/s_axi_aclk] [get_bd_pins user_clk]" in tcl
     assert "[get_bd_pins kernel_0_0/ap_rst_n] [get_bd_pins rst_repl_kernels/Q]" in tcl
     assert "-offset 0x020207FF0000 -range 0x00010000" in tcl
@@ -94,6 +94,8 @@ def test_generate_hbm_with_anchor_and_local_reset_distribution(tmp_path, shell, 
     assert "[get_bd_intf_pins slash_window_anchor/S_AXI]" in tcl
     assert "-net user_clk_net" not in tcl
     assert "BUFG_FABRIC" not in tcl
+    assert "rst_repl_misc" not in tcl
+    assert "rst_repl_hbm_sc" not in tcl
     # HBM1 is unused: all channels must remain combinational bypasses.
     for channel in ("AW", "AR", "W", "R", "B"):
         assert re.search(rf"CONFIG.REG_{channel}\s+\{{0\}}", tcl)
