@@ -22,8 +22,8 @@
  * and mmap the BAR for direct MMIO register access.
  *
  * Only userspace mmap is supported.  Kernel-side device attachments
- * (the normal dma-buf import path) are not implemented. PCI BAR memory
- * can support P2P, but needs a separate peer mapping implementation. The dma-buf
+ * (the normal dma-buf import path) are intentionally rejected because
+ * a PCI BAR is I/O memory, not DMA-able system RAM.  The dma-buf
  * framework is used here solely for its fd-based lifetime management
  * and mmap infrastructure.
  *
@@ -40,7 +40,6 @@
 
 #include "slash.h"
 #include "slash_compat.h"
-#include "slash_pcie.h"
 
 #include <linux/err.h>
 #include <linux/mm.h>
@@ -58,16 +57,15 @@
 struct slash_bar_dmabuf_data {
     int bar_number;
     resource_size_t len;
-    resource_size_t offset;
-    struct slash_p2p_region *region;
 
     struct pci_dev *pdev;
 };
 
 /*
  * We only support userspace mmaps of the BAR; importing into other
- * devices is intentionally rejected: peer attachment mapping is not
- * implemented. hipHostRegisterIoMemory uses the userspace VMA instead.
+ * devices is intentionally rejected because a PCI BAR is not system
+ * memory — it cannot be scatter-gathered or DMA-mapped by another
+ * device.
  */
 static int slash_bar_dmabuf_attach(struct dma_buf *dmabuf, struct dma_buf_attachment *attach)
 {
@@ -101,11 +99,17 @@ static void slash_bar_dmabuf_unmap(struct dma_buf_attachment *attach,
  * physical page frame number (PFN) for the faulting address within
  * the PCI BAR and inserts it into the page tables via vmf_insert_pfn().
  *
- * priv->pdev is held via pci_dev_get() for the lifetime
+ * This avoids io_remap_pfn_range(), whose remap_pfn_range() security
+ * path requires CAP_SYS_RAWIO.  The fault-based approach (VM_PFNMAP +
+ * vmf_insert_pfn) is the standard pattern used by DRM/GPU and VFIO
+ * drivers for mapping device I/O memory to unprivileged userspace.
+ *
+ * Lifetime safety: priv->pdev is held via pci_dev_get() for the lifetime
  * of the dma-buf.  The VMA holds a file reference on the dma-buf, so priv
  * and priv->pdev remain valid for any fault during the VMA's lifetime.
- * This reference preserves the software object, not the PCI resource across
- * device removal. Callers must quiesce accesses before device reconfiguration.
+ * After device removal pci_resource_start() returns stale-but-valid cached
+ * values from the pci_dev struct; MMIO reads will return 0xFFFFFFFF (PCIe
+ * completion timeout) which is the expected degraded behavior.
  *
  * Return: VM_FAULT_NOPAGE on success, VM_FAULT_SIGBUS on out-of-range
  *         access or insertion failure.
@@ -146,8 +150,9 @@ static const struct vm_operations_struct slash_bar_dmabuf_vm_ops = {
  *
  * Configures the VMA with appropriate flags, cache attributes, and a
  * custom vm_operations_struct whose .fault handler uses vmf_insert_pfn()
- * to lazily insert PFNs on first access for legacy BAR exports. P2P range
- * exports install PFNs eagerly so GPU registration can use follow_pfn().
+ * to lazily insert PFNs on first access.  This avoids
+ * io_remap_pfn_range() and its CAP_SYS_RAWIO requirement, allowing
+ * unprivileged userspace to mmap BAR regions.
  *
  * Cache attribute selection:
  *   - Prefetchable BAR → write-combine (pgprot_writecombine): allows
@@ -161,12 +166,8 @@ static int slash_bar_dmabuf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *
 {
     struct slash_bar_dmabuf_data *priv = dmabuf->priv;
     unsigned long size = vma->vm_end - vma->vm_start;
-    u64 offset;
+    u64 offset = (u64)vma->vm_pgoff << PAGE_SHIFT;
     bool wc;
-
-    if (vma->vm_pgoff > (priv->len >> PAGE_SHIFT))
-        return -EINVAL;
-    offset = (u64)vma->vm_pgoff << PAGE_SHIFT;
 
     /* Ensure the requested range lies fully within the BAR. */
     if (offset > priv->len || size > priv->len - offset)
@@ -186,24 +187,6 @@ static int slash_bar_dmabuf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *
     wc = !!(pci_resource_flags(priv->pdev, priv->bar_number) & IORESOURCE_PREFETCH);
     vma->vm_page_prot = wc ? pgprot_writecombine(vma->vm_page_prot)
                            : pgprot_device(vma->vm_page_prot);
-
-    if (priv->region) {
-        struct slash_p2p_region *region = priv->region;
-        int err;
-
-        if (!(vma->vm_flags & VM_SHARED))
-            return -EINVAL;
-        mutex_lock(&region->lock);
-        if (region->dead) {
-            err = -ENODEV;
-        } else {
-            unsigned long pfn = (region->start + priv->offset + offset) >> PAGE_SHIFT;
-
-            err = io_remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot);
-        }
-        mutex_unlock(&region->lock);
-        return err;
-    }
 
     vma->vm_ops = &slash_bar_dmabuf_vm_ops;
     vma->vm_private_data = priv;
@@ -229,8 +212,6 @@ static void slash_bar_dmabuf_release(struct dma_buf *dmabuf)
     dev_dbg(&priv->pdev->dev, "slash: dmabuf release (BAR%d)\n", priv->bar_number);
 
     pci_dev_put(priv->pdev);
-    if (priv->region)
-        slash_p2p_region_put(priv->region);
     kfree(priv);
 }
 
@@ -255,9 +236,7 @@ static const struct dma_buf_ops slash_bar_dmabuf_ops = {
  *
  * Return: Pointer to the new dma_buf on success, ERR_PTR on failure.
  */
-static struct dma_buf *slash_bar_dmabuf_export(struct pci_dev *pdev, int bar_number,
-                                               u64 offset, u64 length,
-                                               struct slash_p2p_region *region)
+struct dma_buf *slash_bar_dmabuf_create(struct pci_dev *pdev, int bar_number)
 {
     long err;
     resource_size_t len;
@@ -279,12 +258,6 @@ static struct dma_buf *slash_bar_dmabuf_export(struct pci_dev *pdev, int bar_num
     }
 
     len = pci_resource_len(pdev, bar_number);
-    if (region) {
-        if (!length || !IS_ALIGNED(offset, PAGE_SIZE) ||
-            !IS_ALIGNED(length, PAGE_SIZE) || offset > len || length > len - offset)
-            return ERR_PTR(-EINVAL);
-        len = length;
-    }
 
     dev_dbg(&pdev->dev, "slash: exporting BAR%d as dma-buf (size=%pa)\n", bar_number, &len);
 
@@ -296,10 +269,6 @@ static struct dma_buf *slash_bar_dmabuf_export(struct pci_dev *pdev, int bar_num
 
     priv->bar_number = bar_number;
     priv->len = len;
-    priv->offset = offset;
-    priv->region = region;
-    if (region)
-        kref_get(&region->ref);
     /* Hold a PCI device reference for the lifetime of the dma-buf. */
     priv->pdev = pci_dev_get(pdev);
 
@@ -321,25 +290,9 @@ static struct dma_buf *slash_bar_dmabuf_export(struct pci_dev *pdev, int bar_num
 
 err_free_priv:
     pci_dev_put(priv->pdev);
-    if (region)
-        slash_p2p_region_put(region);
     kfree(priv);
 
     return ERR_PTR(err);
-}
-
-struct dma_buf *slash_bar_dmabuf_create(struct pci_dev *pdev, int bar_number)
-{
-    return slash_bar_dmabuf_export(pdev, bar_number, 0, 0, NULL);
-}
-
-struct dma_buf *slash_bar_dmabuf_create_range(struct slash_p2p_region *region,
-                                             u64 offset, u64 length)
-{
-    lockdep_assert_held(&region->lock);
-    if (region->dead)
-        return ERR_PTR(-ENODEV);
-    return slash_bar_dmabuf_export(region->pdev, SLASH_P2P_BAR, offset, length, region);
 }
 
 /**

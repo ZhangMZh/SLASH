@@ -176,25 +176,6 @@ struct slash_ioctl_device_info {
 /** Retrieve PCI identity strings and IDs for the device. */
 #define SLASH_CTLDEV_IOCTL_GET_DEVICE_INFO _IOWR('v', 0x32, struct slash_ioctl_device_info)
 
-/** Privileged, experimental PF3 HBM range export through the PF2 node.
- * hbm_addr is an FPGA address, NOT a host physical address. The caller must
- * retain its HBM allocation and prevent reset/reprogram for the full GPU
- * registration lifetime. This fd does not own the daemon allocation.
- * mmap offsets are relative to the exported range; ioctl returns the fd.
- * Only O_CLOEXEC is accepted in flags. Requests must be page aligned,
- * nonempty and contained within one 1 GiB HBM bank.
- */
-struct slash_ioctl_p2p_range {
-    __u32 size;
-    __u32 flags;
-    __u64 hbm_addr;
-    __u64 length;
-};
-#define SLASH_IOCTL_P2P_RANGE_MIN_SIZE \
-    SLASH_OFFSETOFEND(struct slash_ioctl_p2p_range, length)
-#define SLASH_CTLDEV_IOCTL_GET_P2P_RANGE_FD \
-    _IOWR('v', 0x33, struct slash_ioctl_p2p_range)
-
 
 /* ─────────────────────────────────────────────────────────────────────
  * QDMA ioctls — DMA queue management

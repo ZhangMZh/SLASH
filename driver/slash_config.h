@@ -52,14 +52,6 @@
 /** Physical function number for the control/BAR-access interface. */
 #define SLASH_PCIE_PF 2
 
-/* PF3 exposes the compute shell's inbound HBM aperture. */
-#define SLASH_P2P_DEVICE_ID 0x50C3
-#define SLASH_P2P_PF 3
-#define SLASH_P2P_BAR 2
-#define SLASH_P2P_HBM_BASE 0x4000000000ULL
-#define SLASH_P2P_HBM_SIZE 0x800000000ULL
-#define SLASH_P2P_BANK_SIZE 0x40000000ULL
-
 /* --- PCI identity for the QDMA function (PF1) --- */
 
 /** AMD/Xilinx PCI vendor ID (same as control function). */
