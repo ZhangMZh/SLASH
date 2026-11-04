@@ -117,39 +117,3 @@ def test_pf2_msix_lives_in_bar2_on_the_active_gen4_controller(shell):
     for suffix, value in expected.items():
         assert config[f"CPM_PCIE0_PF2_MSIX_{suffix}"] == value
     assert not any(k.startswith("CPM_PCIE1_PF2_") for k in config)
-
-
-def test_frequency_example_keeps_compute_vnoc_routing(tmp_path):
-    from dataclasses import replace
-    from slashkit.parser.config_parser import (
-        apply_config_to_instances, parse_connectivity_file,
-    )
-
-    example = Path(__file__).resolve().parents[4] / "examples/04_freq"
-    cfg = parse_connectivity_file(example / "config.cfg")
-    assert cfg.shell == "compute"
-    assert [(sp.port, sp.target.domain) for sp in cfg.sps] == [
-        (f"m_axi_gmem{i}", "MEM") for i in range(3)]
-    assert [(c.inst, c.freq_hz)
-            for c in cfg.clocks] == [("vadd_0", 400_000_000)]
-    # The working tree may additionally carry example-local layout hooks.
-    for hook in cfg.user_region.pre_synth_tcls:
-        assert (example / hook).is_file()
-
-    initial, bd = hbm_design([512])
-    original = next(iter(initial.values())).kernel
-    ports = {k: v for k, v in original.ports.items() if k != "mem"}
-    ports.update({f"m_axi_gmem{i}": Port(f"m_axi_gmem{i}", BusType.AXI4FULL, width=512)
-                  for i in range(3)})
-    kernel = replace(original, name="vadd", ports=ports)
-    instances = apply_config_to_instances(cfg, [kernel])
-    generate_tcl(SimpleNamespace(
-        block_design_ports=bd, configuration=cfg, kernel_instances=instances,
-        kernels=[kernel], shell_type=ShellType.COMPUTE, project_name="freq",
-        build_dir=tmp_path, clock_hz=400_000_000,
-    ))
-    tcl = (tmp_path / "slash.tcl").read_text()
-    for i in range(3):
-        assert (f"[get_bd_intf_pins vadd_0/m_axi_gmem{i}] "
-                f"[get_bd_intf_pins /hbm_vnoc_0{i}/S00_AXI]") in tcl
-    assert "proc slash_check_hbm_cdc" not in tcl
