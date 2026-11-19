@@ -92,17 +92,24 @@ def _parse_nk_value(val: str) -> NKSpec:
 
 def _parse_stream_connect_value(val: str) -> StreamConnect:
     """
-    Expects: 'srcInst.srcPort:dstInst.dstPort'
+    Expects: 'srcInst.srcPort:dstInst.dstPort[:fifo_depth]'.
     """
     try:
-        left, right = val.split(":")
+        parts = val.split(":")
+        if len(parts) not in (2, 3):
+            raise ValueError("expected two endpoints and optional depth")
+        left, right = parts[:2]
+        depth = int(parts[2]) if len(parts) == 3 else None
+        if depth is not None and (depth < 4 or depth > 1024 or depth & (depth - 1)):
+            raise ValueError("FIFO depth must be a power of two from 4 to 1024")
         src_inst, src_port = left.split(".", 1)
         dst_inst, dst_port = right.split(".", 1)
         return StreamConnect(src_inst.strip(), src_port.strip(),
-                             dst_inst.strip(), dst_port.strip())
+                             dst_inst.strip(), dst_port.strip(), depth)
     except Exception as e:
         raise ValueError(
-            f"Invalid stream_connect '{val}'. Expected 'a.b:c.d'") from e
+            f"Invalid stream_connect '{val}'. Expected 'a.b:c.d[:fifo_depth]'; "
+            "FIFO depth must be a power of two from 4 to 1024") from e
 
 
 def _parse_sp_value(val: str) -> SpMapping:

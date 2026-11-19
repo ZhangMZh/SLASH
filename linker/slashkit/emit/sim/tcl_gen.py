@@ -299,6 +299,7 @@ def generate_sim_tcl(config: LinkerConfiguration) -> None:
     axis_streams_ctx = []
     for s in stream_ctx.get("axis_streams", []):
         axis_streams_ctx.append({
+            **s,
             "src_pin": s["src_pin"],
             "dst_pin": s["dst_pin"],
             "net_name": s["src_pin"].replace("/", "_"),

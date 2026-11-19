@@ -151,7 +151,8 @@ Connectivity Configuration Format:
       Example: nk=vadd:2:vadd_0.vadd_1
       Creates <count> instances of <kernel>. Names are auto-generated if omitted.
 
-    stream_connect=<src_inst>.<src_port>:<dst_inst>.<dst_port>
+    stream_connect=<src_inst>.<src_port>:<dst_inst>.<dst_port>[:<fifo_depth>]
+      Optional FIFO depth: power of two, 4..1024, same-clock kernel AXIS only.
       Examples:
         stream_connect=dma_in_0.axis_out:passthrough_0.axis_in
         stream_connect=traffic_producer_0.axis_out:eth_0.tx0

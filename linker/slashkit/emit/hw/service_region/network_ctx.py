@@ -99,6 +99,8 @@ def build_network_axis_context(
         if not src_is_eth and not dst_is_eth:
             leftover.append(s)
             continue
+        if getattr(s, "fifo_depth", None) is not None:
+            raise ValueError("Explicit FIFO depth is only supported between kernels")
         if src_is_eth and dst_is_eth:
             raise ValueError(
                 f"stream_connect cannot be eth->eth: '{s.src_inst}.{s.src_port} : {s.dst_inst}.{s.dst_port}'")

@@ -166,7 +166,17 @@ connect_bd_net [get_bd_ports rst] [get_bd_pins {{ p }}]
 
 # --- AXIS streams ---
 {% for s in axis_streams %}
+{% if s.fifo_depth|default(none) %}
+set {{ s.fifo_name }} [create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 {{ s.fifo_name }}]
+set_property CONFIG.FIFO_DEPTH {{ s.fifo_depth }} ${{ s.fifo_name }}
+# Interface propagation sets data and optional sideband widths from the source.
+connect_bd_net [get_bd_pins {{ s.clock_pin }}] [get_bd_pins {{ s.fifo_name }}/s_axis_aclk]
+connect_bd_net [get_bd_pins {{ s.reset_pin }}] [get_bd_pins {{ s.fifo_name }}/s_axis_aresetn]
+connect_bd_intf_net [get_bd_intf_pins {{ s.src_pin }}] [get_bd_intf_pins {{ s.fifo_name }}/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins {{ s.fifo_name }}/M_AXIS] [get_bd_intf_pins {{ s.dst_pin }}]
+{% else %}
 connect_bd_intf_net -intf_net {{ s.net_name }} [get_bd_intf_pins {{ s.src_pin }}] [get_bd_intf_pins {{ s.dst_pin }}]
+{% endif %}
 {% endfor %}
 
 # --- AXI-Lite address assignment ---

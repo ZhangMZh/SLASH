@@ -61,6 +61,7 @@ class StreamConnect:
     src_port: str
     dst_inst: str
     dst_port: str
+    fifo_depth: int | None = None
 
 
 @dataclass(frozen=True)

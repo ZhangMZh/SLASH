@@ -933,7 +933,17 @@ connect_bd_intf_net [get_bd_intf_pins {{ r.sc_name }}/M00_AXI] [get_bd_intf_pins
 
 # === AXIS stream connections from config ===
 {% for e in axis_streams|default([]) %}
+{% if e.fifo_depth|default(none) %}
+set {{ e.fifo_name }} [create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 {{ e.fifo_name }}]
+set_property CONFIG.FIFO_DEPTH {{ e.fifo_depth }} ${{ e.fifo_name }}
+# Interface propagation sets data and optional sideband widths from the source.
+connect_bd_net [get_bd_pins {{ e.clock_pin }}] [get_bd_pins {{ e.fifo_name }}/s_axis_aclk]
+connect_bd_net [get_bd_pins {{ e.reset_pin }}] [get_bd_pins {{ e.fifo_name }}/s_axis_aresetn]
+connect_bd_intf_net [get_bd_intf_pins {{ e.src_pin }}] [get_bd_intf_pins {{ e.fifo_name }}/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins {{ e.fifo_name }}/M_AXIS] [get_bd_intf_pins {{ e.dst_pin }}]
+{% else %}
 connect_bd_intf_net [get_bd_intf_pins {{ e.src_pin }}] [get_bd_intf_pins {{ e.dst_pin }}]
+{% endif %}
 {% endfor %}
 
 # === AXI Register Slice terminators for UNUSED memory endpoints ===

@@ -85,9 +85,27 @@ def build_stream_connect_context(
             raise ValueError(
                 f"stream_connect: {s.dst_inst}.{dst_port} is not AXIS (got {dst_p.ptype.name})")
 
+        depth = getattr(s, "fifo_depth", None)
+        extra = {}
+        if depth is not None:
+            if src_inst.params.get("clock_hz") != dst_inst.params.get("clock_hz"):
+                raise ValueError("AXIS FIFO requires equal kernel clock frequencies")
+            if src_p.width != dst_p.width or not src_p.width:
+                raise ValueError("AXIS FIFO requires equal known data widths")
+            clocks = list(src_inst.kernel.ports_of_type(BusType.CLOCK))
+            resets = list(src_inst.kernel.ports_of_type(BusType.RESET))
+            if len(clocks) != 1 or len(resets) != 1:
+                raise ValueError("AXIS FIFO requires one kernel clock and reset")
+            extra = {
+                "fifo_depth": depth,
+                "fifo_name": f"axis_fifo_{len(out)}",
+                "clock_pin": f"{s.src_inst}/{clocks[0].name}",
+                "reset_pin": f"{s.src_inst}/{resets[0].name}",
+            }
         out.append({
             "src_pin": f"{s.src_inst}/{src_port}",
             "dst_pin": f"{s.dst_inst}/{dst_port}",
+            **extra,
         })
 
     return {"axis_streams": out}
